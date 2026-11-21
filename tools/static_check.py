@@ -317,6 +317,13 @@ def check_gradle():
     else:
         ok("gradle", f"versionCode {vc.group(1)}, versionName {vn.group(1)}, "
                      f"minSdk {(mins.group(1) or mins.group(2)) if mins else '?'}")
+    # Machine-local paths must never be committed — the v6 archive shipped a
+    # hardcoded org.gradle.java.home that broke every other machine and CI.
+    gp = os.path.join(ROOT, "gradle.properties")
+    if os.path.exists(gp):
+        active = [l for l in read(gp).splitlines() if l.strip().startswith("org.gradle.java.home")]
+        if active:
+            fail("gradle", "gradle.properties pins org.gradle.java.home — build only works on one machine")
     for dep in ("okhttp", "room-runtime", "security-crypto", "gson"):
         if dep not in g:
             fail("gradle", f"dependency {dep} missing")
