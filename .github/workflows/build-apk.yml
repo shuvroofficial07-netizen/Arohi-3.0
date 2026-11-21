@@ -88,21 +88,22 @@ jobs:
         if: always()
         run: |
           set +e
-          X=$(ls app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null | head -1)
-          [ -n "$X" ] || { echo "::warning::no unit test result xml"; exit 0; }
-          grep -oE 'tests="[0-9]+" skipped="[0-9]+" failures="[0-9]+" errors="[0-9]+"' "$X" | head -1
-          T=$(grep -oE 'tests="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
-          F=$(grep -oE 'failures="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
-          E=$(grep -oE 'errors="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
-          echo "::notice::UNIT TESTS total=$T failures=$F errors=$E"
-          if [ "${F:-1}" != "0" ] || [ "${E:-1}" != "0" ]; then
-            grep -oE '<testcase name="[^"]+"' "$X" | head -10
-            echo "::error::unit tests failed (failures=$F errors=$E)"
+          FILES=$(ls app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null)
+          [ -n "$FILES" ] || { echo "::warning::no unit test result xml"; exit 0; }
+          TOTAL=0; FAILS=0; ERRS=0
+          for f in $FILES; do
+            t=$(grep -oE 'tests="[0-9]+"' "$f" | head -1 | grep -oE '[0-9]+')
+            x=$(grep -oE 'failures="[0-9]+"' "$f" | head -1 | grep -oE '[0-9]+')
+            y=$(grep -oE 'errors="[0-9]+"' "$f" | head -1 | grep -oE '[0-9]+')
+            TOTAL=$((TOTAL + ${t:-0})); FAILS=$((FAILS + ${x:-0})); ERRS=$((ERRS + ${y:-0}))
+            echo "suite $(basename "$f" .xml): tests=${t:-0} failures=${x:-0} errors=${y:-0}"
+          done
+          echo "::notice::UNIT TESTS total=$TOTAL failures=$FAILS errors=$ERRS"
+          if [ "$FAILS" != "0" ] || [ "$ERRS" != "0" ]; then
+            grep -hoE '<testcase name="[^"]+"' $FILES | head -10
+            echo "::error::unit tests failed (failures=$FAILS errors=$ERRS)"
             exit 1
           fi
-          for f in app/build/test-results/testDebugUnitTest/*.xml; do
-            grep -oE '<testsuite name="[^"]+"' "$f" | sed 's/<testsuite name=/suite: /'
-          done
 
       - name: Upload test report
         if: always()
