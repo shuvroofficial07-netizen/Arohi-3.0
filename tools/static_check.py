@@ -282,6 +282,15 @@ def check_repo():
         for token in ("setup-java", "assembleDebug", "upload-artifact"):
             if token not in joined:
                 fail("ci", f"workflow missing step: {token}")
+        # GitHub rejects the ENTIRE workflow (0 jobs, instant failure) if the
+        # `secrets` context appears in a step-level `if:`. Catch it here instead
+        # of discovering it after a push.
+        for f in files:
+            for line in read(f).splitlines():
+                s = line.strip()
+                if s.startswith("if:") and "secrets." in s:
+                    fail("ci", f"{os.path.basename(f)}: secrets context in a step `if:` "
+                               f"-> GitHub rejects the workflow ({s})")
     if not os.path.exists(os.path.join(ROOT, ".gitignore")):
         warn_hygiene("missing .gitignore (build output could be committed)")
     gi = read(os.path.join(ROOT, ".gitignore")) if os.path.exists(os.path.join(ROOT, ".gitignore")) else ""

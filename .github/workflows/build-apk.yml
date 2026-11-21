@@ -25,6 +25,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    # NOTE: the `secrets` context is NOT available inside a step's `if:`
+    # expression (GitHub rejects the whole workflow at startup — that is what
+    # produced an instant "failure" with zero jobs). Secrets are exposed as
+    # job-level env values here, and steps test `env.*` instead.
+    env:
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,11 +73,13 @@ jobs:
 
       # ---------- optional signed release ----------
       - name: Decode keystore (optional)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/arohi-release.jks"
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/arohi-release.jks"
 
       - name: Assemble signed release (optional)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/arohi-release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -85,7 +93,7 @@ jobs:
             -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
       - name: Upload release APK (optional)
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: arohi-release-apk
