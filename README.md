@@ -22,7 +22,7 @@ Native Android app (Kotlin). No WebView. minSdk 28 (Android 9), targetSdk 34 —
 - **ব্র্যান্ডিং ড্রিফট ফিক্স** — টপ বার আর "4.0" দেখায় না। Developer branding অপরিবর্তিত।
 - **অফলাইন স্ট্যাটিক ভেরিফিকেশন গেট** — `tools/static_check.py` (রিসোর্স, viewBinding,
   manifest, Kotlin ব্যালান্স, API ইন্টিগ্রেশন) — ৬/৬ পাস।
-- **ভয়েস গভীর পাস:** sত্যিকারের Barge-in (`BargeInMonitor`), নিজের ভয়েসে নিজে না জাগা
+- **ভয়েস গভীর পাস:** সত্যিকারের Barge-in (`BargeInMonitor`), নিজের ভয়েসে নিজে না জাগা
   (`EchoGuard`), কল চলাকালীন শান্ত থাকা, STT টাইমআউট/রিস্টার্ট ঝড় বন্ধ, stop-word নিখুঁত
   ম্যাচিং, এবং সৎ best-effort ভয়েস কল-হ্যাংআপ (`CallControl`)।
 - **GitHub Actions CI:** push করলেই `.github/workflows/build-apk.yml` সত্যিকারের
