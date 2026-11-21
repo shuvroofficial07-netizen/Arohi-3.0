@@ -82,6 +82,28 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest 2>&1 | tee /tmp/gradle-test.log
 
+      # Test results are also printed as annotations: the report artifact is a
+      # zip on blob storage which is not reachable from every environment.
+      - name: Report test results
+        if: always()
+        run: |
+          set +e
+          X=$(ls app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null | head -1)
+          [ -n "$X" ] || { echo "::warning::no unit test result xml"; exit 0; }
+          grep -oE 'tests="[0-9]+" skipped="[0-9]+" failures="[0-9]+" errors="[0-9]+"' "$X" | head -1
+          T=$(grep -oE 'tests="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
+          F=$(grep -oE 'failures="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
+          E=$(grep -oE 'errors="[0-9]+"' "$X" | head -1 | grep -oE '[0-9]+')
+          echo "::notice::UNIT TESTS total=$T failures=$F errors=$E"
+          if [ "${F:-1}" != "0" ] || [ "${E:-1}" != "0" ]; then
+            grep -oE '<testcase name="[^"]+"' "$X" | head -10
+            echo "::error::unit tests failed (failures=$F errors=$E)"
+            exit 1
+          fi
+          for f in app/build/test-results/testDebugUnitTest/*.xml; do
+            grep -oE '<testsuite name="[^"]+"' "$f" | sed 's/<testsuite name=/suite: /'
+          done
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v5
