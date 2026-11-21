@@ -226,6 +226,78 @@ def check_api_integration():
 
 
 # ------------------------------------------------------------ 6. build metadata
+# ------------------------------------------------ 7. voice pipeline invariants
+def check_voice():
+    voice = os.path.join(JAVA, "com", "arohi", "ai", "voice")
+    needed = ["EchoGuard.kt", "CallControl.kt", "SttManager.kt", "TtsManager.kt",
+              "WakeWordEngine.kt", "ConversationEngine.kt", "VadMeter.kt", "ToneTracker.kt"]
+    for n in needed:
+        if not os.path.exists(os.path.join(voice, n)):
+            fail("voice", f"missing voice module {n}")
+    if fails:
+        return
+    tts = read(os.path.join(voice, "TtsManager.kt"))
+    wake = read(os.path.join(voice, "WakeWordEngine.kt"))
+    conv = read(os.path.join(voice, "ConversationEngine.kt"))
+    echo = read(os.path.join(voice, "EchoGuard.kt"))
+    # the echo guard must be fed at BOTH ends of playback
+    if "EchoGuard.onSpeechStarted" not in tts or "EchoGuard.onSpeechEnded" not in tts:
+        fail("voice", "TtsManager does not drive EchoGuard (self-echo protection lost)")
+    if "EchoGuard.acceptWake" not in wake:
+        fail("voice", "WakeWordEngine bypasses EchoGuard (she can wake on her own voice)")
+    # barge-in must be implemented by a monitor that listens DURING playback
+    mon_path = os.path.join(voice, "BargeInMonitor.kt")
+    if not os.path.exists(mon_path):
+        fail("voice", "BargeInMonitor missing — barge-in cannot work while she speaks")
+    else:
+        mon = read(mon_path)
+        if "EchoGuard.looksLikeEcho" not in mon:
+            fail("voice", "BargeInMonitor does not filter her own voice (echo loop risk)")
+        if "BargeInMonitor.start" not in tts or "BargeInMonitor.stop" not in tts:
+            fail("voice", "TtsManager does not drive BargeInMonitor")
+    # wake words from the spec must all be recognised
+    ext = read(os.path.join(JAVA, "com", "arohi", "ai", "util", "Extensions.kt"))
+    for w in ("আরোহী", "আরোহি", "arohi"):
+        if w not in ext:
+            fail("voice", f"wake word variant {w} not handled in Extensions")
+    # TTS must still support both engines
+    for token in ("elevenlabs.io/v1/text-to-speech", "TextToSpeech"):
+        if token not in tts:
+            fail("voice", f"TTS engine path missing: {token}")
+    if "xi-api-key" not in tts:
+        fail("security", "ElevenLabs request without xi-api-key header")
+    ok("voice", "wake → STT → brain → TTS → barge-in → echo guard wired")
+
+
+# ------------------------------------------------------- 8. CI / repo hygiene
+def check_repo():
+    wf_dir = os.path.join(ROOT, ".github", "workflows")
+    if not os.path.isdir(wf_dir):
+        fail("ci", "no .github/workflows — APK cannot be built anywhere but a dev machine")
+    else:
+        files = [f for f in glob.glob(os.path.join(wf_dir, "*.yml"))]
+        if not files:
+            fail("ci", "workflows directory is empty")
+        joined = "".join(read(f) for f in files)
+        for token in ("setup-java", "assembleDebug", "upload-artifact"):
+            if token not in joined:
+                fail("ci", f"workflow missing step: {token}")
+    if not os.path.exists(os.path.join(ROOT, ".gitignore")):
+        warn_hygiene("missing .gitignore (build output could be committed)")
+    gi = read(os.path.join(ROOT, ".gitignore")) if os.path.exists(os.path.join(ROOT, ".gitignore")) else ""
+    for entry in ("build/", ".gradle/", "*.jks"):
+        if entry not in gi:
+            warn_hygiene(f".gitignore does not exclude {entry}")
+    if not os.path.exists(os.path.join(ROOT, "backup")) or \
+            not glob.glob(os.path.join(ROOT, "backup", "*.zip")):
+        warn_hygiene("no pristine source backup in backup/ (rollback risk)")
+    ok("ci", f"{len(glob.glob(os.path.join(wf_dir, '*.yml')))} workflow(s) build + publish the APK")
+
+
+def warn_hygiene(msg):
+    warns.append(("repo", msg))
+
+
 def check_gradle():
     g = read(os.path.join(ROOT, "app", "build.gradle"))
     vc = re.search(r"versionCode\s+(\d+)", g)
@@ -247,6 +319,8 @@ def main():
     check_manifest()
     check_kotlin_balance()
     check_api_integration()
+    check_voice()
+    check_repo()
     check_gradle()
 
     print("=" * 68)

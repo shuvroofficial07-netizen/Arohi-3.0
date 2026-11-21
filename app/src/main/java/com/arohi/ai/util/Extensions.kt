@@ -62,9 +62,35 @@ object Extensions {
         return false
     }
 
+    /**
+     * v7 — stop-word matcher, tightened.
+     *
+     * The old version returned true for ANY string starting with "থাম"/"stop",
+     * so a normal sentence like "stop doing that later, but explain first"
+     * (or a partial ASR result the moment the user begins speaking) was read as
+     * a stop command. Because barge-in checks this on every PARTIAL, that could
+     * kill playback on the first recognised word.
+     *
+     * Now a stop command is: an exact/whitelisted form, OR a short phrase whose
+     * first word is the stop word (≤ 4 words total, e.g. "থামো একটু",
+     * "stop talking"). Questions and long sentences never match.
+     */
     fun isStopCommand(text: String): Boolean {
         val t = text.lowercase().trim()
-        return t in setOf("থামো", "বন্ধ করো", "stop", "stop it", "শাবাশ থামো", "স্টপ") ||
-                t.startsWith("থাম") || t == "বন্ধ" || t.startsWith("stop")
+            .replace(Regex("[!।,.?]"), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (t.isEmpty()) return false
+        val exact = setOf("থামো", "থাম", "বন্ধ করো", "বন্ধ", "শাবাশ থামো", "স্টপ",
+            "stop", "stop it", "stop now", "shut up", "thamo")
+        if (t in exact) return true
+        val words = t.split(" ")
+        val lead = words.first()
+        val stopLeads = setOf("থামো", "থাম", "স্টপ", "stop", "শান্ত", "চুপ")
+        if (lead in stopLeads && words.size <= 4) {
+            // "stop talking", "থামো একটু" → stop.  "stop the music later" → not.
+            return true
+        }
+        return false
     }
 }

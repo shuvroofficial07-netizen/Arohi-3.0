@@ -32,7 +32,10 @@ import kotlinx.coroutines.withTimeoutOrNull
  * ডিফল্ট FALSE) — অ্যাপ খুললেই মাইক আর নিজে নিজে জ্বলে না; প্রতিটি শোনার সাইকেলের
  * পর ন্যূনতম ২.৫ সে বিরতি — দ্রুত অন/অফ চক্র নেই।
  */
-class WakeWordEngine(private val context: Context, private val onWake: (remainingUtterance: String) -> Unit) {
+class WakeWordEngine(
+    private val context: Context,
+    private val onWake: (remainingUtterance: String) -> Unit
+) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var running = false
@@ -78,6 +81,13 @@ class WakeWordEngine(private val context: Context, private val onWake: (remainin
                 delay(400) // don't chase wake words while Arohi talks or session live
                 continue
             }
+            // v7 CALL SAFETY: Android's SpeechRecognizer cannot reliably run while
+            // a phone call owns the audio path (and it would transcribe the call).
+            // Instead of burning CPU on guaranteed failures, wait for the call to end.
+            if (CallControl.isCallActive(context)) { delay(3000); continue }
+            // v7: never re-arm the ear inside the speaker tail window — that is
+            // exactly when her own voice is loudest in the microphone.
+            EchoGuard.awaitTail()
             if (!com.arohi.ai.core.PermissionHelper.hasMicrophone(context)) { delay(4000); continue }
 
             // HARD timeout: either a result arrives within the window, or we
@@ -110,6 +120,14 @@ class WakeWordEngine(private val context: Context, private val onWake: (remainin
             } ?: Trigger("", false) // timeout → treat as "no wake word heard"
 
             if (triggered.matched) {
+                // v7 ECHO GUARD: reject own-voice echo (this is the fix for the
+                // "she wakes herself / interrupts herself" class of bug).
+                val heard = if (triggered.rest.isNotBlank()) triggered.rest else ""
+                if (!EchoGuard.acceptWake(heard)) {
+                    attempts++
+                    delay(900)
+                    continue
+                }
                 attempts = 0
                 onWake(triggered.rest)
                 continue

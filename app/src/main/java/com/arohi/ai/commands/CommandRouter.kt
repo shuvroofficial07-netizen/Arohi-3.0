@@ -13,6 +13,7 @@ import com.arohi.ai.core.NetworkMonitor
 import com.arohi.ai.memory.MemoryRepository
 import com.arohi.ai.proactive.EmotionEngine
 import com.arohi.ai.services.ConversationHolder
+import com.arohi.ai.voice.CallControl
 import com.arohi.ai.voice.ToneTracker
 import com.arohi.ai.voice.TtsManager
 import kotlinx.coroutines.CoroutineScope
@@ -118,6 +119,16 @@ class CommandRouter private constructor(private val context: Context) {
                     yes.any { t.contains(it) } -> { answerConfirmation(true); return@launch }
                     no.any { t.contains(it) } -> { answerConfirmation(false); return@launch }
                 }
+            }
+
+            // 1.8) v7 — CALL HANG-UP by voice. This needs a REAL capability
+            //      check before anything is claimed: Android only lets the
+            //      default-dialer (or accessibility tap) end a call. Saying
+            //      "কল কেটে দিলাম" without that would be a fake status.
+            if (isHangupCommand(text)) {
+                val result = CallControl.endCall(context)
+                reply(result)
+                return@launch
             }
 
             // 2) fast local path (works offline, saves tokens)
@@ -279,4 +290,20 @@ class CommandRouter private constructor(private val context: Context) {
     }
 
     private fun String.containsAny(vararg keys: String): Boolean = keys.any { contains(it) }
+
+    /**
+     * v7 — recognises genuine hang-up phrasing only. Deliberately narrow so a
+     * sentence like "কল করার নিয়ম বলো" never drops a live call.
+     */
+    private fun isHangupCommand(text: String): Boolean {
+        val t = text.lowercase().trim()
+        val verbs = listOf("কেটে দাও", "কেটে দে", "কেটে দেব", "কেটে ফেল", "কাটো", "কাট", "শেষ কর",
+            "hang up", "end call", "disconnect")
+        val objects = listOf("কল", "ফোন", "call", "phone", "লাইন")
+        val hasVerb = verbs.any { t.contains(it) }
+        if (!hasVerb) return false
+        // a question ("কীভাবে কল কাটবো?") is not an order to hang up
+        if (t.contains("কীভাবে") || t.contains("কিভাবে") || t.contains("how to") || t.endsWith("?")) return false
+        return objects.any { t.contains(it) } || t.trim() in setOf("কেটে দাও", "কেটে দে", "hang up")
+    }
 }

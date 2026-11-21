@@ -124,6 +124,38 @@ class ArohiAccessibilityService : AccessibilityService() {
         return null
     }
 
+    /**
+     * v7 — find the in-call "end call" control and click it (voice hang-up
+     * via accessibility). Matches English + Bengali content descriptions used
+     * by the stock dialers and by Google's Phone app. Returns true only if a
+     * real click action was performed.
+     */
+    fun findAndClickHangup(): Boolean {
+        val node = findHangupNode(rootInActiveWindow) ?: return false
+        val ok = node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        if (!ok && node.parent != null) return node.parent.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        return ok
+    }
+
+    fun findHangupNode(node: AccessibilityNodeInfo?, depth: Int = 0): AccessibilityNodeInfo? {
+        if (node == null || depth > 14) return null
+        val desc = (node.contentDescription?.toString() ?: "").lowercase()
+        val text = (node.text?.toString() ?: "").lowercase()
+        val id = (node.viewIdResourceName ?: "").lowercase()
+        val hangupWords = listOf(
+            "end call", "end_call", "hang up", "hangup", "disconnect", "decline",
+            "কল শেষ", "কল কাট", "কেটে দাও", "call end"
+        )
+        val looksLikeHangup = hangupWords.any { desc.contains(it) || text.contains(it) || id.contains(it) }
+        if (looksLikeHangup && (node.isClickable || node.className?.contains("Button") == true ||
+                    node.className?.contains("ImageButton") == true)) return node
+        for (i in 0 until node.childCount) {
+            val found = findHangupNode(node.getChild(i) ?: continue, depth + 1)
+            if (found != null) return found
+        }
+        return null
+    }
+
     /** Put [text] on the system clipboard. */
     fun setClipboard(text: String) {
         try {

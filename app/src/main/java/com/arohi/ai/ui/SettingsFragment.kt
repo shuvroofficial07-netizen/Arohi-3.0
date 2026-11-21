@@ -158,8 +158,19 @@ class SettingsFragment : Fragment() {
             ArohiBus.toast(if (on) "Wake word চালু — মাইক এখন 'আরোহী' শুনবে; শুনতে পাওয়ার আগে ওয়েক ওয়ার্ড বলা লাগবে"
                 else "Wake word বন্ধ — মাইক সম্পূর্ণ বন্ধ, অ্যাপ আর শুনবে না")
         }
-        val bargeSwitch = MaterialSwitch(ctx).apply { text = "Barge-in: কথা বলার সময় 'থামো' বললে থামবে"; isChecked = s.bargeIn }
-        bargeSwitch.setOnCheckedChangeListener { _, on -> s.bargeIn = on }
+        // v7 — barge-in is now a REAL interrupt: while Arohi speaks, a short
+        // listening session watches for the user's voice (her own speaker sound
+        // is filtered by EchoGuard). The label states that honestly.
+        val bargeSwitch = MaterialSwitch(ctx).apply {
+            text = "Barge-in: আরোহী বলার সময় আপনি কথা বললে সে থেমে শুনবে"
+            isChecked = s.bargeIn
+        }
+        bargeSwitch.setOnCheckedChangeListener { _, on ->
+            s.bargeIn = on
+            ArohiBus.toast(
+                if (on) "Barge-in চালু — তার কথা বলার মাঝে আপনি বললে সে থেমে যাবে"
+                else "Barge-in বন্ধ — শুধু 'থামো' বললে থামবে")
+        }
         val notifChatSwitch = MaterialSwitch(ctx).apply {
             text = "নোটিফিকেশন চ্যাট: অ্যাপের বাইরে থেকে লিখে আরোহীর সাথে গল্প"
             isChecked = s.notifChatEnabled

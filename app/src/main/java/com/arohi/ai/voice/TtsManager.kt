@@ -122,7 +122,12 @@ object TtsManager {
         doneCallback = onDone
         ArohiBus.speaking.value = true
         ArohiBus.setState(ConvState.SPEAKING)
+        // v7 ECHO GUARD: remember what she is saying so the passive wake ear
+        // can reject her own speaker audio as an echo instead of waking herself.
+        EchoGuard.onSpeechStarted(clean)
         acquireWakeLock()
+        // v7 BARGE-IN: listen for the user while she talks (spec §10).
+        BargeInMonitor.start(ctx)
 
         val s = SettingsStore.get(ctx)
         if (!deviceTtsReady) ensureDeviceTts()
@@ -174,6 +179,8 @@ object TtsManager {
     private fun finish() {
         ArohiBus.speaking.value = false
         ArohiBus.amplitude.value = 0f
+        EchoGuard.onSpeechEnded()   // v7: starts the 750 ms mic trust window
+        BargeInMonitor.stop()       // playback over — hand the mic back
         releaseWakeLock()
         if (ArohiBus.state.value == ConvState.SPEAKING) ArohiBus.resetToIdle()
         val cb = doneCallback

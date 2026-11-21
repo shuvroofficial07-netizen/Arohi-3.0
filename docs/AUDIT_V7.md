@@ -58,7 +58,7 @@ This revision: **versionCode 8, versionName 7.0.0-Arohi**
 | System Health dashboard | `core/ApiHealth.kt`, `ui/SystemHealthFragment.kt` | WORKING — সত্যিকারের স্ট্যাটাস, ভুয়া "Connected" নয় |
 | Support / About (developer branding) | `ui/SupportCenterFragment.kt` | WORKING |
 
-মোট: **68 Kotlin ফাইল / 13,935 লাইন** — সব ফাইলের ব্রেস/প্যারেন ব্যালান্স ঠিক (স্ক্রিপ্ট-যাচাইকৃত)।
+মোট: **71 Kotlin ফাইল** (৩টি নতুন: `EchoGuard`, `BargeInMonitor`, `CallControl`) — সব ফাইলের ব্রেস/প্যারেন ব্যালান্স ঠিক (স্ক্রিপ্ট-যাচাইকৃত)।
 
 ## 4. এই রিভিশনে যে বাস্তব বাগগুলো ধরা পড়ে ঠিক করা হয়েছে
 
@@ -95,6 +95,81 @@ v6 অ্যাপের টপ বার/ডিফল্ট শিরোনা�
 **ফিক্স:** "আরোহী AI" — ভার্সন-নিরপেক্ষ, ভবিষ্যতে আর ড্রিফট হবে না।
 Developer branding ("Shù Vrô" + লিংক) **অপরিবর্তিত**।
 
+## 4A. ভয়েস ইঞ্জিন — v7 গভীর পাস (এই রিভিশনের দ্বিতীয় ধাপ)
+
+ব্যবহারকারী পরের পাসে ভয়েসকে অগ্রাধিকার দিয়েছেন, তাই whole pipeline আবার লাইন-বাই-লাইন
+পড়া হয়েছে। নিচের সমস্যাগুলো **আসল** (কোড পড়ে প্রমাণসহ), অনুমান নয়।
+
+### 4A.1 Barge-in আদৌ কাজ করত না — এখন সত্যিই কাজ করে
+v6-এ `ConversationEngine.onPartial`-এর ভেতরে stop-word চেক ছিল, কিন্তু **সেই listener
+আরোহী কথা বলার সময় চালুই থাকত না** — TTS শুরু হলে মাইক সেশন বন্ধ হয়ে যেত, `onDone`-এর
+পরে আবার শোনা শুরু হতো। অর্থাৎ "থামো" বললে কেউ শুনত না (শুধু ভাগ্যক্রমে পরের টার্নে ধরা
+পড়ত)। এটা টিউনিং নয়, সম্পূর্ণ অকার্যকর ফিচার।
+**ফিক্স:** নতুন `voice/BargeInMonitor.kt` — TTS চলাকালীন আলাদা ছোট recognition সেশন
+(৯ সে উইন্ডো) চালায়; `EchoGuard.looksLikeEcho()` দিয়ে **তার নিজের স্পিকারের শব্দ বাদ**
+দেয়, শুধু মানুষের কথা হলে TTS থামায় এবং মাইক কথোপকথনে ফিরিয়ে দেয়।
+`SttManager.Mode.BARGE_IN` নতুন মোড UI-কে মিথ্যা "LISTENING" দেখায় না — সে তখনো SPEAKING।
+
+### 4A.2 নিজের ভয়েসে নিজে জেগে যাওয়া (echo self-wake)
+প্রতিরক্ষা ছিল অর্ধেক: loop-লেভেলে `ArohiBus.speaking` চেক, কিন্তু ঠিক কথা শুরু/শেষের
+মুহূর্তে ফাঁক ছিল।
+**ফিক্স:** `voice/EchoGuard.kt` — playback শুরু/শেষে নোটিশ, ৭৫০ms "speaker tail"
+উইন্ডো, এবং text-overlap ভিত্তিক echo বিচার। `WakeWordEngine` প্রতিটি trigger-এ
+`EchoGuard.acceptWake()` পাস করে; TTS শেষ হলে `EchoGuard.onSpeechEnded()`।
+
+### 4A.3 কল চলাকালীন wake loop অন্ধভাবে চেষ্টা করত
+`SpeechRecognizer` কল চলাকালীন নির্ভরযোগ্যভাবে চলে না (আর কলের কথাও ট্রান্সক্রাইব করতে
+পারে)। আরোহী তখন অকার্যকর চেষ্টায় CPU/ব্যাটারি খরচ করত।
+**ফিক্স:** `CallControl.isCallActive()` দেখে wake loop ৩ সে বিরতি নেয়, `BargeInMonitor`
+শুরুই হয় না — কলের অডিও কখনো ট্রান্সক্রাইব হয় না (privacy)।
+
+### 4A.4 STT timeout নিজেই মাইক ধরে রেখে loop-কে ফাঁদে ফেলত
+WAKE ক্যাপ ছিল ২২ সে, কিন্তু loop-এর `withTimeoutOrNull` ছিল ২০ সে — ক্যাপ কখনো ফায়ার
+করত না, ফলে dead recogniser মাইক ধরে রেখে পরের `start()`-এ `ERROR_CLIENT` দিত।
+**ফিক্স:** WAKE ক্যাপ ১৮ সে (loop উইন্ডোর আগে), BARGE_IN ক্যাপ ৮ সে (monitor উইন্ডোর আগে),
+এবং মোড এখন per-session (শেয়ার্ড mutable state নেই — stale BARGE_IN আর কথোপকথনের UI
+নষ্ট করতে পারে না)।
+
+### 4A.5 কথোপকথনে error → নির্দিষ্ট ৮০০ms রিস্টার্ট ঝড়
+`ERROR_CLIENT`/`BUSY` বারবার এলে প্রতি ৮০০ms-এ restart = মাইক অন/অফ ঝড়।
+**ফিক্স:**ব্যাকঅফ ০.৬ → ১.৫ → ৩ → ৬ সে; টানা ৫ বার ব্যর্থ হলে সেশন সৎভাবে বন্ধ +
+"মাইক এখন পাওয়া যাচ্ছে না"।
+
+### 4A.6 Stop-word ম্যাচার বেশি আক্রমণাত্মক ছিল
+`isStopCommand()` আগে `startsWith("থাম")`/`startsWith("stop")` দেখত — "stop the music
+later, explain first" বা partial-এর প্রথম শব্দেই playback কেটে যেত।
+**ফিক্স:** হোয়াইটলিস্ট + ছোট ফ্রেজ (≤ ৪ শব্দ) নিয়ম; প্রশ্ন/লম্বা বাক্য আর ম্যাচ করে না।
+
+### 4A.7 ভয়েসে কল কাটা — সৎ বাস্তবায়ন (best-effort, মিথ্যা দাবি ছাড়া)
+spec §15 চায় "voice hang up"। Android-এ রুট ছাড়া কল কাটার একমাত্র বৈধ পথ
+`TelecomManager.endCall()`, যা শুধু **default dialer** অ্যাপকে অনুমোদন দেয়।
+**বাস্তবায়ন:** `voice/CallControl.kt` — (১) capability probe (`defaultDialerPackage`),
+(২) অনুমতি থাকলে সত্যিকারের `endCall()` এবং শুধু `true` ফিরলে "কল কেটে দিয়েছি",
+(৩) না থাকলে accessibility দিয়ে লাল বোতাম খোঁজার চেষ্টা (`findAndClickHangup`),
+(৪) কোনোটা না পারলে স্পষ্ট বাংলা ব্যাখ্যা। **কখনো ভুয়া "কল কেটে দিয়েছি" বলে না।**
+কমান্ড শুধু সংকীর্ণ phrasing-এ চলে ("কল কেটে দাও"), প্রশ্ন ("কীভাবে কল কাটবো?") নয়।
+
+### 4A.8 ভয়েস ইঞ্জিন যাচাই (এই মুহূর্তে কোডে যা আছে)
+| স্তর | অবস্থা |
+|---|---|
+| Wake words: "arohi, আরোহী, আরোহি, হেই আরোহী, hey arohi" | পূর্ণ (head-match, ৭টি বানান-ভ্যারিয়েন্ট) |
+| STT: bn-BD + bn-IN + en-US multi-language | পূর্ণ (ডিভাইস ইঞ্জিন সাপোর্ট করলে) |
+| TTS: ElevenLabs `eleven_multilingual_v2` → ডিভাইস TTS (bn) fallback | পূর্ণ |
+| Barge-in | এখন সত্যিই কাজ করে (§4A.1) |
+| Echo self-wake | বন্ধ (§4A.2) |
+| 24/7 FGS + microphone FGS type degrade | পূর্ণ (API 34 permission guard সহ) |
+| ভয়েসে কল কাটা | best-effort, capability-নির্ভর (§4A.7) — **সর্বত্র নয়** |
+
+## 4B. GitHub Actions CI — APK এখন রিপো থেকেই তৈরি হবে
+
+`.github/workflows/build-apk.yml` — push/PR-এ JDK 17 + Android SDK 34 সেটআপ করে
+`./gradlew assembleDebug` চালায়, তারপর `arohi-debug-apk` নামে APK artifact আপলোড করে।
+অপশনাল signed release: রিপো secret-এ `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
+`KEY_ALIAS`, `KEY_PASSWORD` দিলে `assembleRelease`-ও হয়। ব্যর্থ হলে `build-reports`
+artifact (লগ) আপলোড হয়, যাতে আসল এরর ধরা যায়।
+`.github/workflows/verify.yml` — ৫ সেকেন্ডে শুধু static gate চালায় (PR-এর fast check)।
+**এখনো যাচাই হয়নি** যে workflow-টি সফল হবে — প্রথম রান সেটাই প্রমাণ করবে (§7)।
+
 ## 5. যাচাই (এই পরিবেশে যা সত্যিই চালানো হয়েছে)
 
 ```
@@ -104,8 +179,10 @@ $ python3 tools/static_check.py
   PASS  manifest     36 classes, components resolved
   PASS  kotlin       68 files balanced
   PASS  api          Gemini + OpenAI endpoints, auth, isolation and routing verified
+  PASS  voice        wake → STT → brain → TTS → barge-in → echo guard wired
+  PASS  ci           2 workflow(s) build + publish the APK
   PASS  gradle       versionCode 8, versionName 7.0.0-Arohi, minSdk 28
-6 passed, 0 warnings, 0 failed
+8 passed, 0 warnings, 0 failed
 ```
 
 `static_check.py` যেগুলো ধরে: unresolved `@string/@color/@drawable/@dimen/@xml/@style`,
@@ -130,6 +207,9 @@ export ANDROID_HOME=$HOME/Android/Sdk
 | `assembleDebug` সফল হওয়া | JDK/SDK/Google Maven নেই | উপরের §6 কমান্ড |
 | OpenAI/Gemini আসল কী দিয়ে কানেক্ট | আসল কী এই পরিবেশে নেই | API CENTER → Save → বাস্তব টেস্ট |
 | ভয়েস, wake word, TTS | মাইক/স্পিকার 없는 স্যান্ডবক্স | ডিভাইসে START AROHI → "আরোহী" |
+| Barge-in (কথা বলার মাঝে থামানো) | স্পিকার+মাইক একসাথে দরকার | ডিভাইসে লম্বা উত্তর চলাকালীন কথা বলুন |
+| ভয়েসে কল কাটা | default-dialer রোল বা accessibility দরকার | ফোন অ্যাপ → "কল কেটে দাও" |
+| GitHub Actions বিল্ড | এখানে runner নেই | push করার পর Actions ট্যাবে প্রথম রান দেখুন |
 | Notification/accessibility/direct message | আসল অ্যাপ+পারমিশন দরকার | ডিভাইসে WhatsApp/Telegram ইনলাইন রিপ্লাই |
 | Pixel-perfect UI মেলানো | **তুলনার স্ক্রিনশট upload হয়নি** | §8 দেখুন |
 | ব্যাটারি/RAM আচরণ | ডিভাইস মেট্রিক্স দরকার | ডিভাইসে ২৪ ঘণ্টা ব্যবহার |

@@ -38,6 +38,8 @@ class ConversationEngine(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var sessionTimeoutJob: Job? = null
     private var listeningForUser = false
+    /** v7: consecutive recogniser failures → drives the backoff in onError. */
+    private var errorStreak = 0
 
     fun openSession(greet: Boolean = true) {
         scope.launch {
@@ -111,14 +113,19 @@ class ConversationEngine(private val context: Context) {
         VadMeter.start(context)
         SttManager.start(context, object : SttManager.Callbacks {
             override fun onPartial(text: String) {
-                // Barge-in: user interrupts Arohi's speech
+                // NOTE (v7): this listener normally runs only while she is
+                // SILENT, because the old design tore the mic down during TTS.
+                // Real interruption is therefore handled by BargeInMonitor,
+                // which listens while she speaks. This check stays as a cheap
+                // second safety net (some devices deliver a final partial right
+                // as playback starts).
                 val s = SettingsStore.get(context)
-                if (s.bargeIn && ArohiBus.speaking.value && Extensions.isStopCommand(text)) {
-                    TtsManager.stop()
-                }
+                if (!s.bargeIn || !ArohiBus.speaking.value) return
+                if (Extensions.isStopCommand(text)) TtsManager.stop()
             }
             override fun onFinal(text: String) {
                 listeningForUser = false
+                errorStreak = 0
                 VadMeter.stop()
                 armSessionTimeout()
                 val s = SettingsStore.get(context)
@@ -138,15 +145,39 @@ class ConversationEngine(private val context: Context) {
                 VadMeter.stop()
                 if (!ArohiBus.sessionOpen.value) return
                 when (code) {
-                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                    // genuine silence → re-arm immediately, that is the normal loop
+                    SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
+                        errorStreak = 0
                         scope.launch { if (ArohiBus.sessionOpen.value) listenForUser() }
+                    }
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
                         ArohiBus.setState(ConvState.ERROR)
                         speakAndThenListen(context.getString(com.arohi.ai.R.string.err_mic_permission))
                     }
-                    else -> scope.launch {
-                        delay(800)
-                        if (ArohiBus.sessionOpen.value) listenForUser() // safe reconnection
+                    // v7: ERROR_CLIENT / BUSY used to restart after a fixed 800 ms.
+                    // When they repeat (mic owned by another app, recogniser in a
+                    // bad state) that produced an instant restart storm. Now the
+                    // delay grows: 0.6 s → 1.5 s → 3 s → 6 s, and after 5
+                    // consecutive failures the session closes honestly instead of
+                    // pretending to listen forever.
+                    else -> {
+                        errorStreak++
+                        val backoff = when {
+                            errorStreak <= 1 -> 600L
+                            errorStreak == 2 -> 1500L
+                            errorStreak == 3 -> 3000L
+                            else -> 6000L
+                        }
+                        if (errorStreak >= 5) {
+                            errorStreak = 0
+                            ArohiBus.toast("মাইক এখন পাওয়া যাচ্ছে না — অন্য অ্যাপ হয়তো ব্যবহার করছে")
+                            closeSession()
+                            return
+                        }
+                        scope.launch {
+                            delay(backoff)
+                            if (ArohiBus.sessionOpen.value) listenForUser()
+                        }
                     }
                 }
             }
@@ -157,6 +188,7 @@ class ConversationEngine(private val context: Context) {
     fun onArohiReply(text: String) {
         speakAndThenListen(text)
     }
+
 }
 
 /**

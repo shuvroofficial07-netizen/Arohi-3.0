@@ -26,13 +26,20 @@ import com.arohi.ai.core.SettingsStore
  */
 object SttManager {
 
-    enum class Mode { CONVERSATION, WAKE }
+    /**
+     * CONVERSATION — the real listener (owns the UI state)
+     * WAKE         — passive ear for the wake words, always DORMANT in the UI
+     * BARGE_IN     — v7: passive ear WHILE Arohi speaks (interrupt detection).
+     *                It must never claim the UI is "listening" — she is the one
+     *                talking — and it must not drive the waveform, which the
+     *                playback visualiser owns during speech.
+     */
+    enum class Mode { CONVERSATION, WAKE, BARGE_IN }
 
     private var recognizer: SpeechRecognizer? = null
     private val main = Handler(Looper.getMainLooper())
     private var activeCb: Callbacks? = null
     private var timeoutRunnable: Runnable? = null
-    private var currentMode: Mode = Mode.CONVERSATION
 
     /** Hard cap for one listening attempt (ms) — SpeechRecognizer sometimes never returns. */
     private const val LISTEN_TIMEOUT_MS = 12_000L
@@ -46,7 +53,9 @@ object SttManager {
     fun isAvailable(context: Context): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
     fun start(context: Context, cb: Callbacks, mode: Mode = Mode.CONVERSATION) {
-        currentMode = mode
+        // v7: the mode is captured per session (no shared mutable state), so a
+        // leftover BARGE_IN can never influence the next conversation session.
+        val sessionMode = mode
         main.post {
             if (!PermissionHelper.hasMicrophone(context)) {
                 ArohiBus.listening.value = false
@@ -70,43 +79,49 @@ object SttManager {
             }
             rec.setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
-                    if (currentMode == Mode.CONVERSATION) {
+                    if (sessionMode == Mode.CONVERSATION) {
                         ArohiBus.listening.value = true
                         ArohiBus.setState(com.arohi.ai.core.ConvState.LISTENING)
+                    } else if (sessionMode == Mode.BARGE_IN) {
+                        // honest: she is speaking; this ear only watches for an
+                        // interruption, so the UI must keep showing SPEAKING.
+                        ArohiBus.listening.value = false
                     } else {
                         // WAKE mode: passive ear — honest DORMANT, no fake "listening"
                         ArohiBus.listening.value = false
                         ArohiBus.setState(com.arohi.ai.core.ConvState.DORMANT)
                     }
-                    armTimeout()
+                    armTimeout(sessionMode)
                 }
                 override fun onBeginningOfSpeech() {
                     ArohiBus.micActive.value = true
-                    armTimeout()
+                    armTimeout(sessionMode)
                 }
                 override fun onRmsChanged(rmsdB: Float) {
                     // 0..~12dB → 0..1 energy for the live waveform + tone tracking
                     val norm = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f)
-                    ArohiBus.amplitude.value = norm
+                    // v7: during barge-in the mic hears HER voice, so feeding the
+                    // waveform here would make the visualiser lie. Playback owns it.
+                    if (sessionMode != Mode.BARGE_IN) ArohiBus.amplitude.value = norm
                     com.arohi.ai.voice.ToneTracker.sample(norm)
                 }
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEndOfSpeech() {
                     ArohiBus.micActive.value = false
-                    armTimeout()
+                    armTimeout(sessionMode)
                 }
                 override fun onError(error: Int) {
-                    if (currentMode == Mode.CONVERSATION) ArohiBus.listening.value = false
+                    if (sessionMode == Mode.CONVERSATION) ArohiBus.listening.value = false
                     cancelTimeout()
                     val cb2 = activeCb
                     activeCb = null
                     cb2?.onError(error)
                 }
                 override fun onResults(results: Bundle?) {
-                    if (currentMode == Mode.CONVERSATION) {
+                    if (sessionMode != Mode.BARGE_IN) {
                         ArohiBus.listening.value = false
-                        ArohiBus.amplitude.value = 0f
                     }
+                    if (sessionMode == Mode.CONVERSATION) ArohiBus.amplitude.value = 0f
                     cancelTimeout()
                     val cb2 = activeCb
                     activeCb = null
@@ -127,15 +142,24 @@ object SttManager {
     }
 
     /** If the engine never fires any callback, force a NO_MATCH error. */
-    private fun armTimeout() {
+    private fun armTimeout(sessionMode: Mode) {
         cancelTimeout()
-        // WAKE mode gets the loop's own 20s window; conversation keeps 12s.
-        val ms = if (currentMode == Mode.WAKE) 22_000L else LISTEN_TIMEOUT_MS
+        // v7: WAKE cap (18 s) is deliberately SHORTER than the loop's 20 s
+        // withTimeoutOrNull window. Before this, the 22 s cap could never fire,
+        // so a dead recogniser was torn down by the loop's timeout while still
+        // owning the microphone — the next start() then hit ERROR_CLIENT.
+        val ms = when (sessionMode) {
+            Mode.WAKE -> 18_000L
+            // v7: shorter than the monitor's 9 s window so this session is
+            // always released before the monitor's own timeout fires.
+            Mode.BARGE_IN -> 8_000L
+            else -> LISTEN_TIMEOUT_MS
+        }
         timeoutRunnable = Runnable {
             val cb = activeCb
             stopInternal()
-            if (currentMode == Mode.CONVERSATION) ArohiBus.listening.value = false
-            ArohiBus.amplitude.value = 0f
+            if (sessionMode != Mode.BARGE_IN) ArohiBus.listening.value = false
+            if (sessionMode != Mode.BARGE_IN) ArohiBus.amplitude.value = 0f
             activeCb = null
             cb?.onError(SpeechRecognizer.ERROR_NO_MATCH)
         }.also { main.postDelayed(it, ms) }
@@ -153,12 +177,17 @@ object SttManager {
         recognizer = null
     }
 
+    /**
+     * Intentional stop from the conversation/wake loops. It always restores the
+     * conversational UI — this is the user or the loop closing the mic, not the
+     * barge-in monitor (which never calls stop()).
+     */
     fun stop() { main.post {
         stopInternal()
-        val cb = activeCb; activeCb = null
+        activeCb = null
         ArohiBus.listening.value = false
         ArohiBus.resetToDormant()
-        // do NOT fire onError here — this is an intentional user/loop stop
+        // do NOT fire onError here — this is an intentional stop
     } }
 
     fun destroy() { main.post { stopInternal() } }

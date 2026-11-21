@@ -1,0 +1,26 @@
+name: Verify (static gate only)
+
+# Deliberately cheap workflow: runs the offline static checks in seconds and
+# needs no Android SDK. Useful as a fast pre-check before the full APK build,
+# and as the required status check for pull requests.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run static verification
+        run: python3 tools/static_check.py
