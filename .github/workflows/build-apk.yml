@@ -100,7 +100,14 @@ jobs:
           done
           echo "::notice::UNIT TESTS total=$TOTAL failures=$FAILS errors=$ERRS"
           if [ "$FAILS" != "0" ] || [ "$ERRS" != "0" ]; then
-            grep -hoE '<testcase name="[^"]+"' $FILES | head -10
+            # print each <testcase> together with its <failure> message so the
+            # real assertion is visible, then annotate it
+            for f in $FILES; do
+              tr '>' '>\n' < "$f" | grep -E 'testcase name=|failure message=' | head -40
+            done
+            grep -hoE 'failure message="[^"]{0,400}' $FILES | head -6 | while IFS= read -r m; do
+              echo "::error::$(printf '%s' "$m" | tr -d '\r' | cut -c1-450)"
+            done
             echo "::error::unit tests failed (failures=$FAILS errors=$ERRS)"
             exit 1
           fi
