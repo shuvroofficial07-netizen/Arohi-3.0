@@ -19,11 +19,22 @@ This revision: **versionCode 8, versionName 7.0.0-Arohi**
 | Google Maven (`dl.google.com`, `maven.google.com`) | নেটওয়ার্ক ব্লকড | AGP/Material/Room ডিপেন্ডেন্সি ডাউনলোড হবে না |
 | Gradle distribution (`services.gradle.org`) | নেটওয়ার্ক ব্লকড | wrapper চালু হবে না |
 
-**অর্থাৎ: এই সেশনে কোনো APK বিল্ড হয়নি, এবং বিল্ড হওয়ার দাবি করা হচ্ছে না।**
-বিল্ড করার একমাত্র পথ — §6-এর `./gradlew assembleDebug` ধাপটি Android Studio/CI-তে চালানো।
-সেই ঘাটতি পূরণে `tools/static_check.py` যোগ করা হয়েছে, যা কম্পাইল-ব্লকিং ক্লাসের ভুল
-(রিসোর্স, viewBinding ID, manifest কম্পোনেন্ট, Kotlin ব্রেস/প্যারেন ব্যালান্স, API
-ইন্টিগ্রেশন) স্থিরভাবে ধরে — এটাও বিল্ডের বিকল্প নয়, প্রাক-যাচাই।
+**আরও গুরুত্বপূর্ণ:** এই স্যান্ডবক্সে Gradle চালানো যায় না, কিন্তু **GitHub Actions-এ
+বিল্ড সফল হয়েছে** — অর্থাৎ APK আসলেই তৈরি হয়েছে (একই সোর্স কোড থেকে, একই JDK 17 +
+Android SDK 34 দিয়ে)। যা এখনো হয়নি: **ডিভাইসে ইনস্টল করে চালানো**।
+
+| প্রমাণ | ফলাফল |
+|---|---|
+| GitHub Actions run | ✅ success — `Assemble debug APK` |
+| APK artifact | `arohi-debug-apk` (২৮.৯ MB zip, ভেতরে `app-debug.apk` ≈ ৬৬ MB) |
+| aapt2 identity | `com.arohi.ai` • `versionName 7.0.0-Arohi` • `versionCode 8` |
+| Sdk | minSdk **28**, targetSdk **34**, launcher `com.arohi.ai.MainActivity` |
+| Permissions | ৩০টি manifest permission রিড হয়েছে |
+| Unit tests | **১৫/১৫ pass**, 0 failure, 0 error |
+| Static gate | ৯/৯ pass |
+
+সেই সাথে `tools/static_check.py` (৯টি চেক) প্রাক-যাচাই হিসেবে আছে, যা কম্পাইল-ব্লকিং
+ক্লাসের ভুল ধরে — বিল্ডের বিকল্প নয়, দ্রুত ফিল্টার।
 
 ## 2. Preservation — কিছুই মুছে ফেলা হয়নি
 
@@ -170,6 +181,56 @@ artifact (লগ) আপলোড হয়, যাতে আসল এরর �
 `.github/workflows/verify.yml` — ৫ সেকেন্ডে শুধু static gate চালায় (PR-এর fast check)।
 **এখনো যাচাই হয়নি** যে workflow-টি সফল হবে — প্রথম রান সেটাই প্রমাণ করবে (§7)।
 
+## 4C. বাস্তব বাগ যা CI/টেস্ট চালিয়ে ধরা পড়ল (অনুমান নয়)
+
+বিল্ড আর টেস্ট সত্যিই চালানোর ফলে এমন সমস্যা বেরিয়েছে যা শুধু কোড পড়ে ধরা যেত না।
+প্রতিটি ঠিক করার পর আবার বিল্ড হয়েছে।
+
+### 4C.1 `gradle.properties`-এ মেশিন-লোকাল JDK পাথ (বিল্ড সম্পূর্ণ অচল)
+v6 আর্কাইভে ছিল `org.gradle.java.home=/tmp/my-project/.cache/jdk-17.0.21.1+2` — যে
+মেশিনে বানানো হয়েছিল শুধু সেখানেই কাজ করত। অন্য যেকোনো মেশিনে Gradle সাথে সাথে abort:
+`Java home supplied is invalid`। **ফিক্স:** লাইনটি সরানো + static gate-এ নিয়ম।
+
+### 4C.2 wake word আসলে strict ছিল না — মাঝ-বাক্যেও জেগে যেত
+বড় আবিষ্কার: v6-এর কমেন্টে লেখা "utterance must START with the wake command", কিন্তু
+কোডে ছিল `head.contains(word)` প্রথম চার শব্দের উপরে। ফলে
+"আমি ভাবছিলাম আরোহী নামটা কোথা থেকে এলো" বললেই সে জেগে যেত — অর্থাৎ **ভুয়া wake**,
+যা spec নিষিদ্ধ করে।
+**ফিক্স:** positional ম্যাচিং — courtesy prefix (hey/হেই/এই…) বাদ দিয়ে ঠিক পরের শব্দটাই
+wake variant হতে হবে। `stripWakeWords` এখন একই ম্যাচার ব্যবহার করে, তাই accept আর strip
+কখনো বিরোধ করবে না।
+
+### 4C.3 Kotlin-এ অবৈধ regex escape (কম্পাইল এরর)
+`Extensions.kt`-এ `Regex("\s+")` (একক ব্যাকস্ল্যাশ) → `Illegal escape: '\s'`,
+`compileDebugKotlin` ব্যর্থ। **ফিক্স:** সঠিক ডাবল ব্যাকস্ল্যাশ, এবং static_check এখন
+প্রতিটি Kotlin লাইনে অবৈধ escape স্ক্যান করে (একই ভুল আর ৫ মিনিটের CI রাউন্ড ট্রিপ নেবে না)।
+
+### 4C.4 CI workflow নিজেই ভুল ছিল (৩টি ধাপে ধরা পড়ল)
+1. step-level `if:`-এ `secrets.` — GitHub পুরো workflow বাতিল করে (০ job, instant fail)।
+   সমাধান: job-level `env` দিয়ে `HAS_KEYSTORE`, step-এ `env.HAS_KEYSTORE` টেস্ট।
+2. `android-actions/setup-android@v3` runner-এ ব্যর্থ (Node 24-এ জোর করা হয়েছে)।
+   সমাধান: runner-এর নিজের SDK সরাসরি ব্যবহার, `sdkmanager` খুঁজে বের করে।
+3. `bash -e` + non-matching grep → step চুপচাপ মারা যেত। সমাধান: `set +e`, কোট
+   নরমালাইজ করে sed/awk, এবং প্রতি ধাপে annotation-এ ফলাফল ছাপা।
+
+## 4D. নতুন টেস্ট (১৫টি, সব pass)
+
+| টেস্ট ফাইল | কী যাচাই করে |
+|---|---|
+| `LogicContractTest` | wake word (৫টি variant + মাঝ-বাক্যে না + courtesy prefix), strip, stop-word নির্ভুলতা (৫টি সত্যি / ৪টি মিথ্যা), BengaliGuard, reasoning-model সনাক্তকরণ |
+| `EchoGuardTest` | নিজের কথা echo হিসেবে ধরা পড়ে, ভিন্ন বাক্য ধরা পড়ে না, ছোট noise বাদ, ৭৫০ms tail উইন্ডোতে wake বন্ধ / পরে খোলা |
+
+চালানোর কমান্ড: `./gradlew testDebugUnitTest` (CI-তে স্বয়ংক্রিয়)।
+
+## 4E. APK ডাউনলোডের পথ
+
+1. GitHub → repo → **Actions** → `Build APK` → সর্বশেষ সফল run
+2. নিচে **Artifacts** → `arohi-debug-apk` (zip) ডাউনলোড
+3. zip খুলুন → `app-debug.apk` → ফোনে ইনস্টল (Unknown sources অনুমতি দিয়ে)
+4. প্রথম চালুতে permissions + API CENTER-এ কী দিন (§6)
+
+সোর্সে ছোট পরিবর্তন করলেই push-এর সাথে নতুন APK তৈরি হয়ে যাবে।
+
 ## 5. যাচাই (এই পরিবেশে যা সত্যিই চালানো হয়েছে)
 
 ```
@@ -177,13 +238,28 @@ $ python3 tools/static_check.py
   PASS  resources    19 strings, 22 colors, 52 drawables, 14 layouts
   PASS  viewBinding  14 layouts checked
   PASS  manifest     36 classes, components resolved
-  PASS  kotlin       68 files balanced
+  PASS  kotlin       71 files balanced (no illegal escapes)
   PASS  api          Gemini + OpenAI endpoints, auth, isolation and routing verified
   PASS  voice        wake → STT → brain → TTS → barge-in → echo guard wired
   PASS  ci           2 workflow(s) build + publish the APK
+  PASS  tests        15 JVM unit tests across 2 files
   PASS  gradle       versionCode 8, versionName 7.0.0-Arohi, minSdk 28
-8 passed, 0 warnings, 0 failed
+9 passed, 0 warnings, 0 failed
 ```
+
+এবং GitHub Actions-এ (এই সেশনের ভেতরেই চালানো, একাধিক বার):
+
+```
+Assemble debug APK ............ success
+Verify APK identity ........... success
+  IDENTITY package=com.arohi.ai version=7.0.0-Arohi code=8 minSdk=28 targetSdk=34
+           launcher=com.arohi.ai.MainActivity permissions=30
+UNIT TESTS total=15 failures=0 errors=0
+artifact: arohi-debug-apk (28945434 bytes)
+```
+
+এই দুই ধাপ মিলিয়ে দাবি করা যায়: **সোর্স কম্পাইল হয়, টেস্ট পাস করে, এবং একটি
+installable APK তৈরি হয়**। যেটা এখনো দাবি করা যায় না: **ফোনে চালিয়ে দেখা** (§7)।
 
 `static_check.py` যেগুলো ধরে: unresolved `@string/@color/@drawable/@dimen/@xml/@style`,
 `binding.X` যার ID লেআউটে নেই, manifest-এ ঘোষিত কিন্তু কোডে অনুপস্থিত কম্পোনেন্ট,
@@ -204,15 +280,39 @@ export ANDROID_HOME=$HOME/Android/Sdk
 
 | আইটেম | কারণ | কীভাবে যাচাই হবে |
 |---|---|---|
-| `assembleDebug` সফল হওয়া | JDK/SDK/Google Maven নেই | উপরের §6 কমান্ড |
+| ~~`assembleDebug`~~ | ✅ **যাচাই হয়েছে** — GitHub Actions-এ সফল বিল্ড | — |
 | OpenAI/Gemini আসল কী দিয়ে কানেক্ট | আসল কী এই পরিবেশে নেই | API CENTER → Save → বাস্তব টেস্ট |
 | ভয়েস, wake word, TTS | মাইক/স্পিকার 없는 স্যান্ডবক্স | ডিভাইসে START AROHI → "আরোহী" |
 | Barge-in (কথা বলার মাঝে থামানো) | স্পিকার+মাইক একসাথে দরকার | ডিভাইসে লম্বা উত্তর চলাকালীন কথা বলুন |
 | ভয়েসে কল কাটা | default-dialer রোল বা accessibility দরকার | ফোন অ্যাপ → "কল কেটে দাও" |
-| GitHub Actions বিল্ড | এখানে runner নেই | push করার পর Actions ট্যাবে প্রথম রান দেখুন |
+| ~~GitHub Actions বিল্ড~~ | ✅ **সফল** (run 44908099316) | Actions → Artifacts → `arohi-debug-apk` |
+| APK সত্যিই ফোনে ইনস্টল+চলে | এখানে কোনো ডিভাইস/এমুলেটর নেই | ফোনে ইনস্টল করে §7-এর ম্যানুয়াল চেকলিস্ট |
 | Notification/accessibility/direct message | আসল অ্যাপ+পারমিশন দরকার | ডিভাইসে WhatsApp/Telegram ইনলাইন রিপ্লাই |
 | Pixel-perfect UI মেলানো | **তুলনার স্ক্রিনশট upload হয়নি** | §8 দেখুন |
 | ব্যাটারি/RAM আচরণ | ডিভাইস মেট্রিক্স দরকার | ডিভাইসে ২৪ ঘণ্টা ব্যবহার |
+
+## 7A. ফোনে ইনস্টল করার পর এই চেকলিস্ট (৫ মিনিট) — যা এখনো কোডে বলে দাবি করা যাবে না
+
+APK তৈরি হয়েছে, কিন্তু কোনো ডিভাইসে চালানো হয়নি। নিচের ধাপগুলো করলে সেই ফাঁকটা
+বন্ধ হবে। যেকোনো ধাপে সমস্যা হলে ঠিক কোন ধাপে হলো সেটা জানালে দ্রুত ধরা যাবে।
+
+| # | কী করবেন | কী দেখা উচিত (সৎ প্রত্যাশা) |
+|---|---|---|
+| ১ | ইনস্টল → অ্যাপ খুলুন | Home স্ক্রিন, অ্যাভাটার, "Hello Boss" — কোনো crash নয় |
+| ২ | SYSTEM HEALTH খুলুন | প্রতিটি আইটেম সত্যিকারের স্ট্যাটাস; কোনো ভুয়া "Connected" নয় |
+| ৩ | API CENTER → Gemini কী পেস্ট → Save | "মডেল খুঁজছি → যাচাই → বাস্তব টেস্ট" ধাপ পেরিয়ে সফল হলে ✔ |
+| ৪ | OpenAI কী দিয়ে একই কাজ | আলাদা সেকশন, আলাদা কী, আলাদা টেস্ট — একটার কী অন্যটায় যায় না |
+| ৫ | ভুল কী দিন (যেমন `sk-test`) | স্পষ্ট লাল ব্যর্থতা + কারণ, "Connected" নয় |
+| ৬ | START AROHI → "আরোহী" বলুন | জেগে সাড়া দেবে; পেছনে থাকলেও |
+| ৭ | লম্বা উত্তর চলাকালীন কথা বলুন | থেমে যাবে ও আপনাকে শুনবে (barge-in) |
+| ৮ | "থামো" বলুন | সাথে সাথে থামবে |
+| ৯ | "কল কেটে দাও" (কল চলাকালীন) | সৎ উত্তর: হয় কেটে দেবে, নয়তো ডিফল্ট-ফোন দরকার বলবে |
+| ১০ | STOP AROHI | মাইক সম্পূর্ণ বন্ধ, নোটিফিকেশন স্ট্যাটাসও বন্ধ দেখাবে |
+| ১১ | ২৪ ঘণ্টা পরে | ব্যাটারি/মেমরি খরচ সহনীয় কি না |
+
+**যা কোডে প্রমাণিত কিন্তু ফোনে অপ্রমাণিত:** barge-in-এর echo ফিল্টার আসল স্পিকারে
+কেমন কাজ করে, OEM-ভেদে SpeechRecognizer-এর আচরণ, এবং §4A.7-এর কল-হ্যাংআপ।
+এগুলো ডিভাইস ছাড়া দাবি করা যায় না — তাই দাবিও করা হচ্ছে না।
 
 ## 8. পরবর্তী ইনপুট যা দরকার (Part 2 আটকে আছে এখানে)
 

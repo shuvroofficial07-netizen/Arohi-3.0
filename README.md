@@ -20,8 +20,13 @@ Native Android app (Kotlin). No WebView. minSdk 28 (Android 9), targetSdk 34 —
   মেমরি DB, হিস্টোরি, সেটিংস আগের মতোই ব্যাকআপে থাকে।
 - **Provider Enable/Disable** — spec §7/§9 অনুযায়ী বাস্তব সুইচ; কী সেভ রেখেই রাউটিং বন্ধ/চালু।
 - **ব্র্যান্ডিং ড্রিফট ফিক্স** — টপ বার আর "4.0" দেখায় না। Developer branding অপরিবর্তিত।
+- **v7-এ ধরা পড়া আসল বাগ:** `gradle.properties`-এ মেশিন-লোকাল JDK পাথ (সব মেশিনে বিল্ড
+  ভাঙত), wake word আসলে strict ছিল না (মাঝ-বাক্যে নাম থাকলেই জেগে যেত), Kotlin-এ অবৈধ
+  regex escape (কম্পাইল এরর) — সব ঠিক করা হয়েছে টেস্টসহ।
 - **অফলাইন স্ট্যাটিক ভেরিফিকেশন গেট** — `tools/static_check.py` (রিসোর্স, viewBinding,
-  manifest, Kotlin ব্যালান্স, API ইন্টিগ্রেশন) — ৬/৬ পাস।
+  manifest, Kotlin ব্যালান্স/escape, API, voice, CI, tests) — ৯/৯ পাস।
+- **১৫টি JVM ইউনিট টেস্ট** — wake word, stop-word নির্ভুলতা, echo rejection, Bengali guard,
+  reasoning-model প্যারামিটার।
 - **ভয়েস গভীর পাস:** সত্যিকারের Barge-in (`BargeInMonitor`), নিজের ভয়েসে নিজে না জাগা
   (`EchoGuard`), কল চলাকালীন শান্ত থাকা, STT টাইমআউট/রিস্টার্ট ঝড় বন্ধ, stop-word নিখুঁত
   ম্যাচিং, এবং সৎ best-effort ভয়েস কল-হ্যাংআপ (`CallControl`)।
@@ -29,9 +34,22 @@ Native Android app (Kotlin). No WebView. minSdk 28 (Android 9), targetSdk 34 —
   installable APK তৈরি করে (Actions → Artifacts → `arohi-debug-apk`)।
 - পুরোনো v6.0 সোর্স `backup/ArohiAI-v6.0-source-pristine.zip`-এ অক্ষত (rollback)।
 
-**সততা নোট:** এই রিভিশনটি JDK/Android SDK ছাড়া একটি স্যান্ডবক্সে করা, তাই
-`./gradlew assembleDebug` এখানে চালানো হয়নি এবং কোনো APK তৈরি হয়নি। বিল্ড ধাপ §৬-এ
-`docs/AUDIT_V7.md`-এ লেখা।
+### ✅ এই রিভিশনে যা সত্যিই প্রমাণিত
+
+| প্রমাণ | ফলাফল |
+|---|---|
+| GitHub Actions বিল্ড | ✅ success |
+| APK | `arohi-debug-apk` artifact (≈২৮.৯ MB zip → `app-debug.apk`) |
+| APK identity (aapt2) | `com.arohi.ai` • `7.0.0-Arohi` • code 8 • minSdk 28 • targetSdk 34 |
+| Unit tests | ✅ ১৫/১৫ pass |
+| Static gate | ✅ ৯/৯ pass |
+
+**APK নামানোর পথ:** GitHub → **Actions** → `Build APK` → সর্বশেষ সফল run → **Artifacts**
+→ `arohi-debug-apk` → unzip → `app-debug.apk`।
+
+**সততা নোট:** বিল্ড ও টেস্ট সত্যিই চালানো হয়েছে, কিন্তু কোনো **আসল ফোনে ইনস্টল করে
+চালানো হয়নি** (এই পরিবেশে ডিভাইস নেই)। তাই ভয়েস/মাইক/OEM আচরণ "ফোনে যাচাই" বলা হয়নি।
+৫ মিনিটের ডিভাইস চেকলিস্ট `docs/AUDIT_V7.md` §7A-তে।
 
 ---
 
