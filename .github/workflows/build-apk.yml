@@ -92,15 +92,26 @@ jobs:
           set +e
           LOG=/tmp/gradle-build.log
           [ -f "$LOG" ] || { echo "::error::no gradle log was produced"; exit 0; }
-          echo "::group::Kotlin/Java errors"
-          grep -nE "^(e|w): |^FAILURE:|What went wrong|^> |error:" "$LOG" | head -60
-          echo "::endgroup::"
-          # Each diagnostic becomes an annotation so it is visible in the UI and
-          # through the API even when the raw log is unavailable.
-          grep -E "^(e|w): |error:|What went wrong" "$LOG" | head -25 | while IFS= read -r line; do
-            echo "::error::$(printf '%s' "$line" | tr -d '\r' | cut -c1-400)"
+
+          # 1) every Kotlin/Java diagnostic becomes one annotation
+          grep -E "^(e|w): " "$LOG" | head -25 | while IFS= read -r line; do
+            echo "::error::$(printf '%s' "$line" | tr -d '\r' | cut -c1-450)"
           done
-          tail -40 "$LOG" | sed 's/^/    /'
+
+          # 2) the failure block itself: "* What went wrong:" + following lines,
+          #    plus any "Caused by" / "Could not" lines. This is what actually
+          #    names the problem when the build stops before compilation.
+          awk '/What went wrong/{f=1;next} f&&NR>0{print; c++; if(c>=12) exit}' "$LOG" \
+            | sed '/^[[:space:]]*$/d' | head -12 | while IFS= read -r line; do
+            echo "::error::$(printf '%s' "$line" | tr -d '\r' | cut -c1-450)"
+          done
+          grep -E "Caused by|Could not (find|resolve|download|create)|A problem occurred|Execution failed|Unsupported class file|requires (Java|JDK)" "$LOG" \
+            | head -8 | while IFS= read -r line; do
+            echo "::error::$(printf '%s' "$line" | tr -d '\r' | cut -c1-450)"
+          done
+
+          # 3) short tail for context
+          tail -25 "$LOG" | sed 's/^/    /'
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
