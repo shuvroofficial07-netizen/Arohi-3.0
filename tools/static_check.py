@@ -307,6 +307,23 @@ def warn_hygiene(msg):
     warns.append(("repo", msg))
 
 
+# ------------------------------------------------------------- 9. unit tests
+def check_tests():
+    tdir = os.path.join(ROOT, "app", "src", "test")
+    files = glob.glob(os.path.join(tdir, "**", "*.kt"), recursive=True)
+    if not files:
+        fail("tests", "no JVM unit tests — behaviour claims would be unverified")
+        return
+    joined = "".join(read(f) for f in files)
+    tests = len(re.findall(r"@Test", joined))
+    if tests < 8:
+        fail("tests", f"only {tests} unit tests — too thin to be a gate")
+    for area in ("wake", "stop", "echo", "reasoning"):
+        if area.lower() not in joined.lower():
+            fail("tests", f"no unit test covers {area}")
+    ok("tests", f"{tests} JVM unit tests across {len(files)} files")
+
+
 def check_gradle():
     g = read(os.path.join(ROOT, "app", "build.gradle"))
     vc = re.search(r"versionCode\s+(\d+)", g)
@@ -337,6 +354,7 @@ def main():
     check_api_integration()
     check_voice()
     check_repo()
+    check_tests()
     check_gradle()
 
     print("=" * 68)

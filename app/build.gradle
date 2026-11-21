@@ -33,6 +33,10 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+    testOptions {
+        unitTests.returnDefaultValues = true   // pure-JVM tests without Android runtime
+    }
+
     buildFeatures {
         viewBinding true
     }
@@ -42,6 +46,10 @@ android {
 }
 
 dependencies {
+    // v7 — real JVM unit tests for pure logic (no device required)
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'
+
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
