@@ -101,7 +101,7 @@ object Extensions {
 
     private fun normaliseSpeech(s: String): String = s.lowercase()
         .replace(Regex("[,।!?…:;\"'’“”]"), " ")
-        .replace(Regex("\s+"), " ")
+        .replace(Regex("\\s+"), " ")
         .trim()
 
     fun isStopCommand(text: String): Boolean {

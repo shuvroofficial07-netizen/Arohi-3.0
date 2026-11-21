@@ -183,6 +183,34 @@ def check_kotlin_balance():
             if s.count(op) != s.count(cl):
                 fail("kotlin", f"{os.path.basename(f)}: unbalanced {label} "
                                f"{s.count(op)} vs {s.count(cl)}")
+    # Illegal escapes in Kotlin string literals are compile errors that balance
+    # counting cannot see (a real one reached CI: Regex("\s+")). A normal
+    # (non-raw) Kotlin string only allows \t \b \n \r ' " \ \$ \u. Any other
+    # backslash+letter is illegal; "\\s" is the correct spelling.
+    BS = chr(92)
+    allowed = set("tbnr'\"$u")
+    for f in kt_files():
+        for n, line in enumerate(read(f).splitlines(), 1):
+            if BS not in line:
+                continue
+            i = 0
+            while i < len(line):
+                if line[i] != BS:
+                    i += 1
+                    continue
+                nxt = line[i + 2] if i + 2 < len(line) else ""
+                # "\\" = escaped backslash (legal) -> skip both
+                if i + 1 < len(line) and line[i + 1] == BS:
+                    i += 2
+                    continue
+                # inside a raw string (""") escapes are literal, but a raw
+                # string spanning lines is rare; treat only obvious cases
+                if i + 1 < len(line) and line[i + 1] not in allowed:
+                    fail("kotlin", f"{os.path.basename(f)}:{n} illegal escape "
+                                   f"'{line[i:i + 3]}' in a Kotlin string — double the "
+                                   f"backslash or use a raw string")
+                    break
+                i += 1
     ok("kotlin", f"{len(kt_files())} files balanced")
 
 
