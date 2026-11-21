@@ -80,7 +80,27 @@ jobs:
         run: python3 tools/static_check.py
 
       - name: Assemble debug APK
-        run: ./gradlew --no-daemon --stacktrace assembleDebug
+        # Output is tee'd so failures can be reported back as check annotations
+        # (workflow logs are not always downloadable, annotations are).
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace assembleDebug 2>&1 | tee /tmp/gradle-build.log
+
+      - name: Report compiler errors
+        if: failure()
+        run: |
+          set +e
+          LOG=/tmp/gradle-build.log
+          [ -f "$LOG" ] || { echo "::error::no gradle log was produced"; exit 0; }
+          echo "::group::Kotlin/Java errors"
+          grep -nE "^(e|w): |^FAILURE:|What went wrong|^> |error:" "$LOG" | head -60
+          echo "::endgroup::"
+          # Each diagnostic becomes an annotation so it is visible in the UI and
+          # through the API even when the raw log is unavailable.
+          grep -E "^(e|w): |error:|What went wrong" "$LOG" | head -25 | while IFS= read -r line; do
+            echo "::error::$(printf '%s' "$line" | tr -d '\r' | cut -c1-400)"
+          done
+          tail -40 "$LOG" | sed 's/^/    /'
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
