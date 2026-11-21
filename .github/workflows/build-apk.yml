@@ -152,24 +152,19 @@ jobs:
           RAW=$(grep -E "^(package:|sdkVersion|targetSdkVersion|minSdkVersion|launchable-activity)" /tmp/badging.txt | head -6 | tr '\n' '|')
           echo "::notice::badging lines: $RAW"
 
-          # NOTE: GitHub runs `run:` steps as `bash -e`, so a non-matching grep
-          # in a command substitution kills the step. Every extraction is
-          # therefore done in ONE awk pass that always exits 0.
-          eval "$(awk '
-            /^package:/ {
-              if (match($0, /name=.\''[^'\'']*./))  { p=substr($0,RSTART+6,RLENGTH-7) }
-              if (match($0, /versionCode=.\''[^'\'']*./)) { c=substr($0,RSTART+13,RLENGTH-14) }
-              if (match($0, /versionName=.\''[^'\'']*./)) { v=substr($0,RSTART+13,RLENGTH-14) }
-            }
-            /^minSdkVersion:/ { m=$0; sub(/.*:/,"",m); gsub(/[^0-9]/,"",m) }
-            /^sdkVersion:/    { if (m=="") { m=$0; sub(/.*:/,"",m); gsub(/[^0-9]/,"",m) } }
-            /^targetSdkVersion:/ { tg=$0; sub(/.*:/,"",tg); gsub(/[^0-9]/,"",tg) }
-            /^launchable-activity:/ {
-              if (match($0, /name=.\''[^'\'']*./)) { a=substr($0,RSTART+6,RLENGTH-7) }
-            }
-            END {
-              printf "pkg=%s\nvc=%s\nvn=%s\nmins=%s\ntgt=%s\nact=%s\n", p, c, v, m, tg, a
-            }' /tmp/badging.txt)"
+          # NOTE: GitHub runs `run:` steps with `bash -e`, so a non-matching
+          # grep inside a command substitution would kill the step. `set +e`
+          # above makes each extraction failure-safe. Single quotes in aapt2
+          # output are normalised to double quotes first so no tricky shell
+          # escaping is needed inside the awk/sed programs.
+          tr "'" '"' < /tmp/badging.txt > /tmp/b.txt
+          pkg=$(sed -n 's/^package: name="\([^"]*\)".*/\1/p' /tmp/b.txt | head -1)
+          vc=$(sed -n 's/.*versionCode="\([^"]*\)".*/\1/p' /tmp/b.txt | head -1)
+          vn=$(sed -n 's/.*versionName="\([^"]*\)".*/\1/p' /tmp/b.txt | head -1)
+          mins=$(sed -n 's/^minSdkVersion:"\([0-9]*\)".*/\1/p' /tmp/b.txt | head -1)
+          [ -n "$mins" ] || mins=$(sed -n 's/^sdkVersion:"\([0-9]*\)".*/\1/p' /tmp/b.txt | head -1)
+          tgt=$(sed -n 's/^targetSdkVersion:"\([0-9]*\)".*/\1/p' /tmp/b.txt | head -1)
+          act=$(sed -n 's/^launchable-activity: name="\([^"]*\)".*/\1/p' /tmp/b.txt | head -1)
           perms=$(grep -c "uses-permission" /tmp/badging.txt || echo 0)
           echo "::notice::IDENTITY package=[$pkg] version=[$vn] code=[$vc] minSdk=[$mins] targetSdk=[$tgt] launcher=[$act] permissions=[$perms]"
 
