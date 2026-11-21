@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/search_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="স্মৃতি খুঁজুন…"
+            android:textColorHint="@color/arohi_text_dim"
+            android:textColor="@color/arohi_text"
+            android:background="@drawable/bg_input"
+            android:padding="12dp"
+            android:maxLines="1"
+            android:inputType="text" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/add_memory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_add"
+            app:backgroundTint="@color/arohi_cyan"
+            app:tint="@color/arohi_bg"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:contentDescription="স্মৃতি যোগ" />
+    </LinearLayout>
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/memory_switch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="মেমরি সিস্টেম চালু (বন্ধ করলে আরোহী নতুন কিছু মনে রাখবে না)"
+        android:textSize="13sp"
+        android:layout_marginTop="10dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/memory_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/export_memory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:text="এক্সপোর্ট"
+            android:textAllCaps="false"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/import_memory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="4dp"
+            android:text="ইমপোর্ট"
+            android:textAllCaps="false"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/view_chat"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginHorizontal="4dp"
+            android:text="চ্যাট লগ"
+            android:textAllCaps="false"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/clear_memory"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:text="সব মুছুন"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            android:backgroundTint="@color/arohi_error" />
+    </LinearLayout>
+</LinearLayout>

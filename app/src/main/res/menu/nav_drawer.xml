@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_nav_home"
+        android:title="HOME" />
+    <item
+        android:id="@+id/nav_assistant"
+        android:icon="@drawable/ic_nav_assistant"
+        android:title="ASSISTANT" />
+    <item
+        android:id="@+id/nav_device"
+        android:icon="@drawable/ic_nav_device"
+        android:title="DEVICE" />
+    <item
+        android:id="@+id/nav_memory"
+        android:icon="@drawable/ic_nav_memory"
+        android:title="MEMORY" />
+    <item
+        android:id="@+id/nav_automation"
+        android:icon="@drawable/ic_add"
+        android:title="AUTOMATION" />
+    <item
+        android:id="@+id/nav_vision"
+        android:icon="@drawable/ic_camera"
+        android:title="VISION" />
+    <item
+        android:id="@+id/nav_notifications"
+        android:icon="@drawable/ic_notif"
+        android:title="NOTIFICATIONS" />
+    <item
+        android:id="@+id/nav_messages"
+        android:icon="@drawable/ic_send"
+        android:title="MESSAGES" />
+    <item
+        android:id="@+id/nav_files"
+        android:icon="@drawable/ic_image"
+        android:title="FILES — ফাইল ও গ্যালারি" />
+
+    <item android:title="সিস্টেম">
+        <menu>
+            <item
+                android:id="@+id/nav_api_center"
+                android:icon="@drawable/ic_image"
+                android:title="API CENTER" />
+            <item
+                android:id="@+id/nav_system_health"
+                android:icon="@drawable/ic_flash"
+                android:title="SYSTEM HEALTH" />
+            <item
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_nav_settings"
+                android:title="SETTINGS" />
+            <item
+                android:id="@+id/nav_support"
+                android:icon="@drawable/ic_support"
+                android:title="SUPPORT" />
+            <item
+                android:id="@+id/nav_emergency"
+                android:icon="@drawable/ic_stop"
+                android:title="EMERGENCY STOP" />
+        </menu>
+    </item>
+</menu>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/arohi_surface_hi">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="আরোহী (Arohi)"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/arohi_cyan" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Universal JARVIS + Personal AI Companion"
+        android:textSize="12sp"
+        android:textColor="@color/arohi_text_dim"
+        android:layout_marginTop="2dp" />
+
+    <TextView
+        android:id="@+id/drawer_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="v4.0 — শুভ্রের জন্য"
+        android:textSize="12sp"
+        android:textColor="@color/arohi_text_dim"
+        android:layout_marginTop="6dp" />
+</LinearLayout>

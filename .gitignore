@@ -1,0 +1,27 @@
+# AROHI AI — repository hygiene
+# Build output, IDE state and machine-local config never belong in Git.
+
+# Gradle / Android build output
+.gradle/
+build/
+app/build/
+captures/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+local.properties
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Keystores — never commit signing material
+*.jks
+*.keystore
+
+# Python cache from tools/
+__pycache__/
+*.pyc

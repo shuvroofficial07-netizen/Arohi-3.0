@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:layout_margin="8dp"
+        android:background="@drawable/bg_glass">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/vision_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/vision_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="ক্যামেরা বন্ধ — আরোহী তখনই দেখে, যখন তুমি বলবে"
+            android:textColor="@color/arohi_text_dim"
+            android:textSize="13sp" />
+    </FrameLayout>
+
+    <ScrollView
+        android:id="@+id/vision_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</LinearLayout>

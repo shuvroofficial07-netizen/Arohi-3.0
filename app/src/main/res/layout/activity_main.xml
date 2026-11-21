@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/arohi_bg"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@color/arohi_surface"
+            app:navigationIcon="@drawable/ic_menu"
+            app:title="আরোহী AI 4.0"
+            app:titleTextColor="@color/arohi_cyan"
+            app:titleTextAppearance="@style/ArohiToolbarTitle" />
+
+        <FrameLayout
+            android:id="@+id/fragment_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottom_nav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/arohi_surface"
+            app:itemIconTint="@color/arohi_cyan"
+            app:itemTextColor="@color/arohi_text_dim"
+            app:itemActiveIndicatorStyle="@style/Widget.Material3.BottomNavigationView.ActiveIndicator"
+            app:menu="@menu/bottom_nav" />
+    </LinearLayout>
+
+    <com.google.android.material.navigation.NavigationView
+        android:id="@+id/nav_view"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="@color/arohi_surface"
+        app:headerLayout="@layout/nav_header"
+        app:itemIconTint="@color/arohi_cyan"
+        app:itemTextColor="@color/arohi_text"
+        app:menu="@menu/nav_drawer" />
+</androidx.drawerlayout.widget.DrawerLayout>

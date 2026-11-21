@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Arohi" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/arohi_cyan</item>
+        <item name="colorOnPrimary">#04122B</item>
+        <item name="colorPrimaryContainer">@color/arohi_surface_hi</item>
+        <item name="colorSecondary">@color/arohi_violet</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorSurface">@color/arohi_surface</item>
+        <item name="colorOnSurface">@color/arohi_text</item>
+        <item name="colorOnSurfaceVariant">@color/arohi_text_dim</item>
+        <item name="colorError">@color/arohi_error</item>
+        <item name="android:colorBackground">@color/arohi_bg</item>
+        <item name="android:windowBackground">@color/arohi_bg</item>
+        <item name="android:statusBarColor">@color/arohi_bg</item>
+        <item name="android:navigationBarColor">@color/arohi_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:textColor">@color/arohi_text</item>
+        <item name="textInputStyle">@style/ArohiTextInput</item>
+    </style>
+
+    <style name="ArohiToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/arohi_cyan</item>
+    </style>
+
+    <style name="ArohiTextInput" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/arohi_stroke</item>
+        <item name="hintTextColor">@color/arohi_cyan</item>
+        <item name="android:textColorHint">@color/arohi_text_dim</item>
+    </style>
+
+    <style name="ArohiCard" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/arohi_glass</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/arohi_stroke</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="ArohiStatusText" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textColor">@color/arohi_text_dim</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="ArohiStatusValue" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/arohi_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ================= v6 HOME SCREEN (screenshot-matched) ================= -->
+    <style name="ArohiStatusPill">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_pill_status</item>
+        <item name="android:paddingVertical">8dp</item>
+        <item name="android:layout_marginHorizontal">4dp</item>
+    </style>
+
+    <style name="ArohiStatusPillText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">4dp</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/arohi_text</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+    </style>
+
+    <style name="ArohiGridButton">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/bg_grid_btn</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="ArohiGridIcon">
+        <item name="android:layout_width">26dp</item>
+        <item name="android:layout_height">26dp</item>
+    </style>
+
+    <style name="ArohiGridText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/arohi_text</item>
+    </style>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AROHI — Android 11 and below backup rules.
+
+  The memory database, conversation history and settings ARE backed up (user
+  data must never be lost). Only the secrets file is excluded: it is encrypted
+  with an Android Keystore master key that never leaves the device, so restoring
+  it elsewhere would produce an undecryptable file instead of a working key.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="arohi_secure.xml" />
+    <exclude domain="sharedpref" path="arohi_secure_fallback.xml" />
+</full-backup-content>

@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- ================= HERO: AI AVATAR (screenshot-matched) ================= -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="330dp">
+
+            <ImageView
+                android:id="@+id/hero_avatar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/arohi_avatar"
+                android:contentDescription="@string/app_name" />
+
+            <!-- bottom fade into the app background -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_hero_fade" />
+
+            <!-- speech bubble (Bengali greeting) -->
+            <TextView
+                android:id="@+id/bubble_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="12dp"
+                android:layout_marginStart="150dp"
+                android:background="@drawable/bg_bubble"
+                android:padding="12dp"
+                android:text="Hello Boss! আমি AROHI… আপনার জন্য সবসময় প্রস্তুত! ♡"
+                android:textColor="@color/arohi_text"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <!-- live status (preserved: honest state line) -->
+            <TextView
+                android:id="@+id/state_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="10dp"
+                android:background="@drawable/bg_pill"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="IDLE"
+                android:textSize="11sp"
+                android:textColor="@color/arohi_text" />
+
+            <TextView
+                android:id="@+id/emotion_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="10dp"
+                android:background="@drawable/bg_pill"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="আবেগ: স্বাভাবিক"
+                android:textSize="11sp"
+                android:textColor="@color/arohi_cyan" />
+        </FrameLayout>
+
+        <!-- agent / adaptive / provider / offline / progress — all preserved -->
+        <TextView
+            android:id="@+id/agent_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="@color/arohi_neon"
+            android:gravity="center"
+            android:paddingHorizontal="16dp" />
+
+        <TextView
+            android:id="@+id/adaptive_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="@color/arohi_violet"
+            android:gravity="center"
+            android:paddingHorizontal="16dp" />
+
+        <TextView
+            android:id="@+id/offline_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="অফলাইন মোড: ইন্টারনেট নেই — ডিভাইস কমান্ড ও স্মৃতি চলছে, জেমিনি/ওয়েব বন্ধ"
+            android:textSize="11sp"
+            android:textColor="@color/arohi_bg"
+            android:background="@color/arohi_warn"
+            android:padding="8dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="6dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/task_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:textColor="@color/arohi_success"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- ================= WAVEFORM BAR ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_wave_bar"
+            android:gravity="center">
+
+            <com.arohi.ai.ui.WaveformView
+                android:id="@+id/wave"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:layout_marginHorizontal="12dp" />
+        </LinearLayout>
+
+        <!-- ================= 4 STATUS PILLS (real data) ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:weightSum="4">
+
+            <LinearLayout android:id="@+id/pill_online"
+                style="@style/ArohiStatusPill">
+                <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                    android:src="@drawable/ic_online" app:tint="@color/arohi_success" />
+                <TextView android:id="@+id/pill_online_text" style="@style/ArohiStatusPillText"
+                    android:text="অনলাইন" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/pill_memory"
+                style="@style/ArohiStatusPill">
+                <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                    android:src="@drawable/ic_brain" app:tint="@color/arohi_magenta" />
+                <TextView android:id="@+id/pill_memory_text" style="@style/ArohiStatusPillText"
+                    android:text="স্মৃতি" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/pill_battery"
+                style="@style/ArohiStatusPill">
+                <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                    android:src="@drawable/ic_battery" app:tint="@color/arohi_success" />
+                <TextView android:id="@+id/pill_battery_text" style="@style/ArohiStatusPillText"
+                    android:text="ব্যাটারি" />
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/pill_secure"
+                style="@style/ArohiStatusPill">
+                <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                    android:src="@drawable/ic_shield" app:tint="@color/arohi_warn" />
+                <TextView android:id="@+id/pill_secure_text" style="@style/ArohiStatusPillText"
+                    android:text="সুরক্ষিত" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ================= 3 CIRCLES: START / BRAIN / STOP ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <LinearLayout
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" android:gravity="center">
+
+                <FrameLayout
+                    android:id="@+id/circle_start"
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:background="@drawable/bg_circle_start"
+                    android:clickable="true" android:focusable="true">
+                    <ImageView
+                        android:layout_width="42dp" android:layout_height="42dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_mic" app:tint="@color/arohi_cyan" />
+                </FrameLayout>
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Start AROHI" android:textSize="13sp"
+                    android:textStyle="bold" android:textColor="@color/arohi_cyan" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" android:gravity="center">
+
+                <FrameLayout
+                    android:id="@+id/circle_brain"
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:background="@drawable/bg_circle_brain"
+                    android:clickable="true" android:focusable="true">
+                    <ImageView
+                        android:layout_width="42dp" android:layout_height="42dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_brain" app:tint="@color/arohi_violet" />
+                </FrameLayout>
+                <TextView
+                    android:id="@+id/brain_status"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:text="AI ব্রেইন" android:textSize="12sp"
+                    android:textStyle="bold" android:textColor="@color/arohi_violet" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp" android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" android:gravity="center">
+
+                <FrameLayout
+                    android:id="@+id/circle_stop"
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:background="@drawable/bg_circle_stop"
+                    android:clickable="true" android:focusable="true">
+                    <ImageView
+                        android:layout_width="42dp" android:layout_height="42dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_stop" app:tint="@color/arohi_magenta" />
+                </FrameLayout>
+                <TextView
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Stop AROHI" android:textSize="13sp"
+                    android:textStyle="bold" android:textColor="@color/arohi_magenta" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- listening pill (real state) -->
+        <TextView
+            android:id="@+id/listening_pill"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_listening_pill"
+            android:gravity="center"
+            android:padding="12dp"
+            android:text="● শুনছি না — চালু করতে Start AROHI চাপুন"
+            android:textColor="@color/arohi_text_dim"
+            android:textSize="14sp" />
+
+        <!-- ================= 6 FUNCTION BUTTONS (2x3 grid) ================= -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <LinearLayout android:id="@+id/grid_assistant" style="@style/ArohiGridButton">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_smile"
+                    app:tint="@color/arohi_cyan" />
+                <TextView style="@style/ArohiGridText" android:text="Assistant" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/grid_device" style="@style/ArohiGridButton"
+                android:layout_marginLeft="8dp">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_nav_device"
+                    app:tint="@color/arohi_cyan" />
+                <TextView style="@style/ArohiGridText" android:text="Device" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/grid_memory" style="@style/ArohiGridButton"
+                android:layout_marginLeft="8dp">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_nav_memory"
+                    app:tint="@color/arohi_violet" />
+                <TextView style="@style/ArohiGridText" android:text="Memory" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:weightSum="3">
+
+            <LinearLayout android:id="@+id/grid_automation" style="@style/ArohiGridButton">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_nav_settings"
+                    app:tint="@color/arohi_violet" />
+                <TextView style="@style/ArohiGridText" android:text="Automation" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/grid_vision" style="@style/ArohiGridButton"
+                android:layout_marginLeft="8dp">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_eye"
+                    app:tint="@color/arohi_cyan" />
+                <TextView style="@style/ArohiGridText" android:text="Vision" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/grid_more" style="@style/ArohiGridButton"
+                android:layout_marginLeft="8dp">
+                <ImageView style="@style/ArohiGridIcon" android:src="@drawable/ic_more"
+                    app:tint="@color/arohi_warn" />
+                <TextView style="@style/ArohiGridText" android:text="More" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ================= BRANDING (developer, never change) ================= -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="14dp"
+            android:text="👑 Created by &quot;Shù Vrô&quot; ❤️"
+            android:textColor="@color/arohi_cyan"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <!-- ============ PRESERVED v5 SECTIONS (below the fold) ============ -->
+        <TextView
+            android:id="@+id/service_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="সার্ভিস: বন্ধ"
+            android:textSize="12sp"
+            android:textColor="@color/arohi_text_dim"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:paddingHorizontal="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_setup"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="10dp"
+            android:text="সব অনুমতি এক ট্যাপে চালু করো"
+            android:textSize="13sp"
+            android:textAllCaps="false"
+            app:cornerRadius="16dp"
+            android:backgroundTint="@color/arohi_surface_hi"
+            android:textColor="@color/arohi_cyan" />
+
+        <TextView
+            android:id="@+id/brain_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="@color/arohi_text_dim"
+            android:gravity="center"
+            android:paddingHorizontal="20dp"
+            android:layout_marginTop="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Quick Actions"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/arohi_text"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/quick_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12dp"
+            app:chipSpacingHorizontal="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="স্মৃতি"
+                android:textSize="13sp"
+                android:textColor="@color/arohi_text_dim" />
+
+            <TextView
+                android:id="@+id/memory_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="…"
+                android:textSize="13sp"
+                android:textColor="@color/arohi_text" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="সম্পূর্ণ সিস্টেম স্ট্যাটাস (সবুজ = চালু)"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/arohi_text"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp" />
+
+        <LinearLayout
+            android:id="@+id/status_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Recent Activities"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="@color/arohi_text"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="14dp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recent_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="false"
+            android:paddingHorizontal="16dp"
+            android:layout_marginTop="4dp" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="24dp" />
+    </LinearLayout>
+</ScrollView>

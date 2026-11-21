@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- permission card -->
+    <LinearLayout
+        android:id="@+id/perm_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_glass"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/perm_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ফোনের সব ফাইল আর গ্যালারি দেখতে 'সব ফাইল অ্যাক্সেস' অনুমতি দিন"
+            android:textColor="@color/arohi_text"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_all_files"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="সব ফাইল অ্যাক্সেস"
+                android:textSize="12sp"
+                app:backgroundTint="@color/arohi_neon" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_media_perm"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="গ্যালারি অনুমতি"
+                android:textSize="12sp"
+                app:strokeColor="@color/arohi_cyan"
+                android:textColor="@color/arohi_cyan" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- quick roots chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:scrollbars="none">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/root_chips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleLine="true" />
+    </HorizontalScrollView>
+
+    <!-- search + tab row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/search_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="ফাইল খোঁজুন (সম্পূর্ণ ফোন)…"
+            android:textColorHint="@color/arohi_text_dim"
+            android:textColor="@color/arohi_text"
+            android:background="@drawable/bg_input"
+            android:padding="12dp"
+            android:maxLines="1"
+            android:inputType="text"
+            android:imeOptions="actionSearch" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_search"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="খোঁজো"
+            android:textSize="12sp"
+            app:backgroundTint="@color/arohi_cyan"
+            app:tint="@color/arohi_bg" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/mode_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:singleSelection="true"
+        app:selectionRequired="true">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/tab_files"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ফাইল ব্রাউজার"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/tab_gallery"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="গ্যালারি"
+            android:textSize="12sp" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <TextView
+        android:id="@+id/path_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/arohi_text_dim"
+        android:textSize="11sp"
+        android:layout_marginTop="6dp"
+        android:singleLine="true"
+        android:ellipsize="start" />
+
+    <!-- files list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/files_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:clipToPadding="false" />
+
+    <!-- gallery grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/gallery_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:visibility="gone"
+        android:clipToPadding="false" />
+</LinearLayout>

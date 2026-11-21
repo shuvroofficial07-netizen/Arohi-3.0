@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Arohi AI</string>
+    <string name="accessibility_desc">Arohi-কে আপনার হয়ে স্ক্রিনে টাচ, টাইপ ও রিপ্লাই পাঠানোর অনুমতি দিন। এটি ছাড়া অটো-রিপ্লাই ও স্ক্রিন অটোমেশন কাজ করবে না।</string>
+
+    <!-- Service notification -->
+    <string name="notif_channel_service">Arohi Background Service</string>
+    <string name="notif_channel_tasks">Arohi Automation Tasks</string>
+    <string name="notif_channel_alerts">Arohi Alerts</string>
+    <string name="notif_service_title">আরোহী সক্রিয় আছে</string>
+    <string name="notif_service_text">প্রস্তুত — "আরোহী" বললেই শুনবো • লিখেও কথা বলা যায়</string>
+    <string name="notif_stop">STOP</string>
+    <string name="notif_chat_action">লিখে কথা বলো</string>
+    <string name="notif_chat_hint">আরোহীকে লেখো…</string>
+
+    <!-- Preserved error voice pack (from the original project spec) -->
+    <string name="err_gemini_no_response">Sir, Gemini se response nahi aa raha.</string>
+    <string name="err_voice_unavailable">Sir, voice service temporarily unavailable hai.</string>
+    <string name="err_mic_permission">Microphone permission required hai.</string>
+    <string name="err_internet_check">Internet connection check kijiye.</string>
+
+    <string name="tab_home">HOME</string>
+    <string name="tab_assistant">ASSISTANT</string>
+    <string name="tab_device">DEVICE</string>
+    <string name="tab_memory">MEMORY</string>
+    <string name="tab_settings">SETTINGS</string>
+</resources>

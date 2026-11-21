@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AROHI — Android 12+ (API 31+) backup rules.
+
+  Cloud backup and device transfer both keep memory/history/settings, and both
+  exclude the Keystore-encrypted secrets file (API keys). After a restore the
+  user simply re-enters a key in API CENTER — no other data is affected.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="arohi_secure.xml" />
+        <exclude domain="sharedpref" path="arohi_secure_fallback.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="arohi_secure.xml" />
+        <exclude domain="sharedpref" path="arohi_secure_fallback.xml" />
+    </device-transfer>
+</data-extraction-rules>

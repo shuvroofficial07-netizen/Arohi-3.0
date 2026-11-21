@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/state_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="আরোহী প্রস্তুত"
+            android:background="@drawable/bg_pill"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:textColor="@color/arohi_cyan"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/offline_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="অফলাইন"
+            android:background="@drawable/bg_pill"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:textColor="@color/arohi_warn"
+            android:textSize="12sp"
+            android:layout_marginStart="8dp"
+            android:visibility="gone" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mode_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="মোড: ভয়েস"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            style="@style/Widget.Material3.Button.TextButton" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp">
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/vision_preview"
+            android:layout_width="240dp"
+            android:layout_height="240dp"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/chat_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/confirm_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_glass"
+        android:padding="12dp"
+        android:layout_marginTop="6dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/confirm_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="@color/arohi_warn" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/confirm_yes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="হ্যাঁ, করো"
+                android:textAllCaps="false"
+                android:backgroundTint="@color/arohi_success" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/confirm_no"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="না, বাতিল"
+                android:textAllCaps="false"
+                android:backgroundTint="@color/arohi_error" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <com.arohi.ai.ui.WaveformView
+        android:id="@+id/waveform"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginTop="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="4dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/image_pick"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_image"
+            app:iconTint="@color/arohi_violet"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/mic_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:src="@drawable/ic_nav_assistant"
+            app:tint="@color/arohi_bg"
+            app:backgroundTint="@color/arohi_cyan"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            android:contentDescription="মাইক" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/stop_button"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_stop"
+            app:iconTint="@color/arohi_magenta"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/vision_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:text="ক্যামেরা ভিশন"
+            android:textAllCaps="false"
+            android:textSize="12sp"
+            style="@style/Widget.Material3.Button.TextButton" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/text_input_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/text_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="টাইপ করে বলুন…"
+            android:textColorHint="@color/arohi_text_dim"
+            android:textColor="@color/arohi_text"
+            android:background="@drawable/bg_input"
+            android:padding="12dp"
+            android:maxLines="3"
+            android:inputType="text" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/send_button"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_send"
+            app:iconTint="@color/arohi_cyan"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+    </LinearLayout>
+</LinearLayout>
