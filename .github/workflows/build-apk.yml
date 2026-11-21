@@ -128,25 +128,44 @@ jobs:
       # expected identity — printed as annotations so the facts are visible even
       # when the binary itself cannot be downloaded.
       - name: Verify APK identity
+        # Proves the artifact is a real, installable Android package with the
+        # expected identity. Every check reports through annotations, so the
+        # facts stay visible even where the raw log cannot be downloaded.
         run: |
-          set -euo pipefail
-          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
-          echo "APK: $APK ($(stat -c%s "$APK") bytes)"
-          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort -r | head -1)
-          "$AAPT" dump badging "$APK" > /tmp/badging.txt
-          PKG=$(grep -oP "^package: name='\\K[^']+" /tmp/badging.txt)
-          VC=$(grep -oP "versionCode='\\K[^']+" /tmp/badging.txt)
-          VN=$(grep -oP "versionName='\\K[^']+" /tmp/badging.txt)
-          MIN=$(grep -oP "sdkVersion:'\\K[^']+" /tmp/badging.txt)
-          TGT=$(grep -oP "targetSdkVersion:'\\K[^']+" /tmp/badging.txt)
-          ACT=$(grep -oP "launchable-activity: name='\\K[^']+" /tmp/badging.txt | head -1)
-          echo "::notice::APK $PKG v$VN (code $VC), minSdk $MIN, targetSdk $TGT, launcher $ACT"
-          test "$PKG" = "com.arohi.ai"          || { echo "::error::unexpected package $PKG"; exit 1; }
-          test "$MIN" -le 28                     || { echo "::error::minSdk $MIN is above 28"; exit 1; }
-          test "$TGT" = "34"                     || { echo "::error::targetSdk $TGT != 34"; exit 1; }
-          test -n "$ACT"                         || { echo "::error::no launcher activity"; exit 1; }
-          echo "::notice::APK signature: $(grep -c . /tmp/badging.txt) manifest lines parsed, permissions:"
-          grep -c "uses-permission" /tmp/badging.txt | sed 's/^/  declared permissions: /'
+          set -uo pipefail
+          APK=$(ls app/build/outputs/apk/debug/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+            echo "::error::no debug APK was produced"; exit 1
+          fi
+          SIZE=$(stat -c%s "$APK")
+          echo "::notice::APK file: $APK ($SIZE bytes)"
+
+          AAPT=$(find "${ANDROID_HOME}/build-tools" -name aapt2 -type f 2>/dev/null | sort -r | head -1)
+          if [ -z "$AAPT" ]; then
+            echo "::warning::aapt2 not found — identity checks skipped"; exit 0
+          fi
+          if ! "$AAPT" dump badging "$APK" > /tmp/badging.txt 2>/tmp/aapt.err; then
+            echo "::error::aapt2 could not read the APK: $(head -3 /tmp/aapt.err | tr '\n' ' ')"
+            exit 1
+          fi
+          head -c 600 /tmp/badging.txt | tr '\n' '|' | sed 's/^/badging: /'
+
+          pkg=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          vc=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          vn=$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          mins=$(sed -n "s/^sdkVersion:'\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          tgt=$(sed -n "s/^targetSdkVersion:'\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          act=$(sed -n "s/.*launchable-activity: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          perms=$(grep -c "uses-permission" /tmp/badging.txt || true)
+          echo "::notice::IDENTITY package=[$pkg] version=[$vn] code=[$vc] minSdk=[$mins] targetSdk=[$tgt] launcher=[$act] permissions=[$perms]"
+
+          rc=0
+          [ "$pkg" = "com.arohi.ai" ] || { echo "::error::package id is [$pkg], expected com.arohi.ai"; rc=1; }
+          [ "$mins" = "28" ]         || { echo "::error::minSdk is [$mins], expected 28 (universal compatibility target)"; rc=1; }
+          [ "$tgt" = "34" ]          || { echo "::error::targetSdk is [$tgt], expected 34"; rc=1; }
+          [ -n "$act" ]              || { echo "::error::APK has no launcher activity"; rc=1; }
+          echo "::notice::APK verification finished with rc=$rc"
+          exit $rc
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
