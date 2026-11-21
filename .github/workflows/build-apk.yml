@@ -148,14 +148,16 @@ jobs:
             echo "::error::aapt2 could not read the APK: $(head -3 /tmp/aapt.err | tr '\n' ' ')"
             exit 1
           fi
-          head -c 600 /tmp/badging.txt | tr '\n' '|' | sed 's/^/badging: /'
+          RAW=$(grep -E "^(package:|sdkVersion|targetSdkVersion|minSdkVersion|launchable-activity)" /tmp/badging.txt | head -6 | tr '\n' '|')
+          echo "::notice::badging lines: $RAW"
 
-          pkg=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          pkg=$(grep -oE "package: name='[^']+'" /tmp/badging.txt | head -1 | sed "s/.*name='//;s/'//")
           vc=$(sed -n "s/.*versionCode='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
           vn=$(sed -n "s/.*versionName='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
-          mins=$(sed -n "s/^sdkVersion:'\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
-          tgt=$(sed -n "s/^targetSdkVersion:'\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
-          act=$(sed -n "s/.*launchable-activity: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          mins=$(grep -oE "sdkVersion:'[0-9]+'" /tmp/badging.txt | head -1 | grep -oE "[0-9]+")
+          [ -n "$mins" ] || mins=$(grep -oE "minSdkVersion:'[0-9]+'" /tmp/badging.txt | head -1 | grep -oE "[0-9]+")
+          tgt=$(grep -oE "targetSdkVersion:'[0-9]+'" /tmp/badging.txt | head -1 | grep -oE "[0-9]+")
+          act=$(grep -oE "launchable-activity: name='[^']+'" /tmp/badging.txt | head -1 | sed "s/.*name='//;s/'//")
           perms=$(grep -c "uses-permission" /tmp/badging.txt || true)
           echo "::notice::IDENTITY package=[$pkg] version=[$vn] code=[$vc] minSdk=[$mins] targetSdk=[$tgt] launcher=[$act] permissions=[$perms]"
 
