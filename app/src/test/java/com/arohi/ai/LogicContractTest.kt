@@ -58,8 +58,18 @@ class LogicContractTest {
         listOf(
             "আমি ভাবছিলাম আরোহী নামটা কোথা থেকে এলো",
             "কাল আরোহী সম্পর্কে একটা ভিডিও দেখলাম",
-            "আরোহী শব্দটার অর্থ কী জানো"
+            "শুভ্র আরোহী কে জানে না"
         ).forEach { assertFalse("must NOT wake on: $it", Extensions.matchesWakeWord(it, wakeWords)) }
+    }
+
+    @Test
+    fun `a sentence that STARTS with her name counts as addressing her`() {
+        // Deliberate design decision (documented, not an accident): the wake
+        // rule is positional. If her name opens the sentence she is being
+        // spoken to — distinguishing "about the word" from "to her" is not
+        // something a speech recogniser's plain text can support honestly.
+        listOf("আরোহী শব্দটার অর্থ কী", "আরোহী তুমি কেমন আছো", "আরোহী কী করছো এখন")
+            .forEach { assertTrue("should wake on: $it", Extensions.matchesWakeWord(it, wakeWords)) }
     }
 
     @Test
