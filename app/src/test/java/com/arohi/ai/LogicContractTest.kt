@@ -46,6 +46,26 @@ class LogicContractTest {
     fun `wake word is stripped so the command reaches the brain clean`() {
         assertEquals("আজ কী আছে", Extensions.stripWakeWords("আরোহী আজ কী আছে", wakeWords))
         assertEquals("open youtube", Extensions.stripWakeWords("hey arohi open youtube", wakeWords))
+        assertEquals("আজ কী আছে", Extensions.stripWakeWords("হেই আরোহি, আজ কী আছে", wakeWords))
+        // no wake word -> the sentence must survive untouched
+        val plain = "আজ আমার অনেক কাজ আছে"
+        assertEquals(plain, Extensions.stripWakeWords(plain, wakeWords))
+    }
+
+    @Test
+    fun `a name mentioned later in the sentence never counts as addressing her`() {
+        // regression: v6 used `head.contains(word)` and woke on all of these
+        listOf(
+            "আমি ভাবছিলাম আরোহী নামটা কোথা থেকে এলো",
+            "কাল আরোহী সম্পর্কে একটা ভিডিও দেখলাম",
+            "আরোহী শব্দটার অর্থ কী জানো"
+        ).forEach { assertFalse("must NOT wake on: $it", Extensions.matchesWakeWord(it, wakeWords)) }
+    }
+
+    @Test
+    fun `courtesy prefixes still work`() {
+        listOf("এই আরোহী", "হ্যালো আরোহী", "hello arohi", "ok arohi", "আরে আরোহী শোনো")
+            .forEach { assertTrue("should wake on: $it", Extensions.matchesWakeWord(it, wakeWords)) }
     }
 
     // --------------------------------------------------------------- stop words

@@ -30,51 +30,80 @@ object Extensions {
     fun randomSalt(): String =
         (1..16).map { "abcdef0123456789".random() }.joinToString("")
 
-    /** Strip wake words from an utterance: "hey arohi আজ কী আছে" → "আজ কী আছে" */
-    fun stripWakeWords(text: String, wakeWordsCsv: String): String {
-        var t = text.trim()
-        for (w in wakeWordsCsv.split(",").map { it.trim() }.filter { it.isNotEmpty() }) {
-            t = t.replaceFirst(Regex("(?i)^(${Regex.escape(w)}|হেই\\s*আরোহী?|আরোহী?|hey\\s+arohi)[,:]?\\s*"), "")
-            t = t.replaceFirst(Regex("(?i)(হেই\\s*আরোহী?|hey\\s+arohi)[,:]?\\s*"), "")
+    /**
+     * v7 — STRICT wake match, now actually strict (unit tested).
+     *
+     * v6 documented "must START with the wake command" but implemented
+     * `head.contains(word)` across the first four words. So an ordinary sentence
+     * such as "আমি ভাবছিলাম আরোহী নামটা কোথা থেকে এলো" woke her — precisely the
+     * false-wake behaviour the spec forbids. A unit test now pins this down.
+     *
+     * Rule: after an optional courtesy prefix (hey/hello/এই/আরে/…), the very
+     * next token(s) must BE a wake variant. Everything else is conversation.
+     */
+    fun matchesWakeWord(text: String, wakeWordsCsv: String): Boolean =
+        wakeMatchIndex(text, wakeWordsCsv) >= 0
+
+    /** Character index where the wake phrase begins, or -1. */
+    private fun wakeMatchIndex(text: String, wakeWordsCsv: String): Int {
+        val t = normaliseSpeech(text)
+        if (t.isEmpty()) return -1
+        if (wakeVariants(wakeWordsCsv).any { t == it || t.startsWith("$it ") }) return 0
+        for (p in COURTESY) {
+            if (!t.startsWith("$p ")) continue
+            val rest = t.removePrefix("$p ").trimStart()
+            if (wakeVariants(wakeWordsCsv).any { rest == it || rest.startsWith("$it ") }) {
+                return p.length + 1
+            }
         }
-        return t.trim()
+        return -1
     }
 
     /**
-     * v5 — STRICT wake match: the utterance must START with the wake command
-     * (small courtesy prefixes like hey/hello/এই/ও/আরে allowed). A random
-     * conversation that merely CONTAINS "arohi" somewhere mid-sentence no
-     * longer wakes her — she wakes ONLY when Shubho actually addresses her.
+     * Strip the wake phrase so the command reaches the brain clean:
+     * "হেই আরোহি, আজ কী আছে" → "আজ কী আছে". Uses the same matcher, so accept
+     * and strip can never disagree.
      */
-    fun matchesWakeWord(text: String, wakeWordsCsv: String): Boolean {
-        val t = text.lowercase().trim()
-        if (t.isBlank()) return false
-        val words = wakeWordsCsv.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
-        val prefixes = listOf("hey", "hello", "hi", "ওই", "এই", "আরে", "ও", "হেই", "হ্যালো", "হে", "okay", "ok")
-        // first 4 words are the decision zone — "arohi" buried deeper is chatter
-        val head = t.split(Regex("\\s+")).take(4).joinToString(" ")
-        if (words.any { head.startsWith(it) || head.contains(it) }) return true
-        val variants = listOf("আরোহী", "আরোহি", "এরোহি", "অরোহী", "অরোহি", "arohi", "a rohi", "hey arohi", "হেই আরোহি")
-        if (variants.any { head.startsWith(it) || head.contains(it) }) return true
-        // "hey/এই … আরোহী" in the first two words
-        val first = t.split(Regex("\\s+")).firstOrNull() ?: return false
-        if (first in prefixes && variants.any { t.contains(it) }) return true
-        return false
+    fun stripWakeWords(text: String, wakeWordsCsv: String): String {
+        if (wakeMatchIndex(text, wakeWordsCsv) < 0) return text.trim()
+        var out = normaliseSpeech(text)
+        for (p in COURTESY) {
+            if (!out.startsWith("$p ")) continue
+            val rest = out.removePrefix("$p ").trimStart()
+            if (wakeVariants(wakeWordsCsv).any { rest == it || rest.startsWith("$it ") }) {
+                out = rest
+                break
+            }
+        }
+        for (v in wakeVariants(wakeWordsCsv)) {   // longest first
+            if (out == v) return ""
+            if (out.startsWith("$v ")) return out.removePrefix(v).trimStart().trim()
+        }
+        return out.trim()
     }
 
-    /**
-     * v7 — stop-word matcher, tightened.
-     *
-     * The old version returned true for ANY string starting with "থাম"/"stop",
-     * so a normal sentence like "stop doing that later, but explain first"
-     * (or a partial ASR result the moment the user begins speaking) was read as
-     * a stop command. Because barge-in checks this on every PARTIAL, that could
-     * kill playback on the first recognised word.
-     *
-     * Now a stop command is: an exact/whitelisted form, OR a short phrase whose
-     * first word is the stop word (≤ 4 words total, e.g. "থামো একটু",
-     * "stop talking"). Questions and long sentences never match.
-     */
+    /** Courtesy prefixes a person may put in front of the wake word. */
+    private val COURTESY = listOf(
+        "hey", "hello", "hi", "okay", "ok", "oi",
+        "এই", "ওই", "হেই", "হ্যালো", "আরে", "হে", "ও"
+    )
+
+    /** Spelled variants seen in real Bengali/English speech recognition output. */
+    private fun wakeVariants(wakeWordsCsv: String): List<String> =
+        (listOf(
+            "আরোহী", "আরোহি", "এরোহি", "অরোহী", "অরোহি", "আরহি", "আরুহি",
+            "arohi", "a rohi", "aro hi"
+        ) + wakeWordsCsv.split(","))
+            .map { normaliseSpeech(it) }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sortedByDescending { it.length }
+
+    private fun normaliseSpeech(s: String): String = s.lowercase()
+        .replace(Regex("[,।!?…:;\"'’“”]"), " ")
+        .replace(Regex("\s+"), " ")
+        .trim()
+
     fun isStopCommand(text: String): Boolean {
         val t = text.lowercase().trim()
             .replace(Regex("[!।,.?]"), " ")
